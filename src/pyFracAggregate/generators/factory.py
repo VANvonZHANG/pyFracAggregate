@@ -1,6 +1,7 @@
 from pyFracAggregate.core.distributions import ParticleDistribution
 from pyFracAggregate.generators.base import BaseGenerator
 from pyFracAggregate.generators.pca_filippov import PCAFilippovGenerator
+from pyFracAggregate.generators.cca_filippov import CCAFilippovGenerator
 
 def get_generator(
     method: str,
@@ -32,5 +33,7 @@ def get_generator(
     method = method.lower()
     if method == 'pca':
         return PCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance)
+    elif method == 'cca':
+        return CCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance)
     else:
         raise ValueError(f"Unknown generation method: {method}")
