@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyFracAggregate"
+version = "0.1.0"
+description = "通用分形团簇生成框架 (General Fractal Aggregate Generation Framework)"
+authors = [
+    { name = "Fan Zhang", email = "vanvonzhang@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "mathutils>=3.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy"
+]
