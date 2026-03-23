@@ -160,3 +160,6 @@ debug_cca.py
 debug_pca.py
 *.json
 *.py.bak
+
+# Output data and artifacts
+output/
