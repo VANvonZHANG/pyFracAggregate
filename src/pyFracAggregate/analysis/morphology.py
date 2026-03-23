@@ -45,7 +45,7 @@ def radius_of_gyration(aggregate: Aggregate) -> float:
         # Or more accurately based on eq [4]: Rg^2 = a^2 for N=1. 
         # But for polydisperse spheres with parallel axis theorem: Rg^2 = 3/5 * r^2.
         # Wait, the Filippov paper uses: Rg^2 = 1/N sum((ri - r0)^2 + a^2).
-        # Let's check the Morán 2019 FracVAL equation for polydisperse:
+        # Let's check the Moran 2019 FracVAL equation for polydisperse:
         # Rg^2 = 1/m_a sum(m_i * [(R_i - R_c)^2 + r_{g,i}^2]) where r_{g,i}^2 = 3/5 * r_{p,i}^2
         # Let's implement the standard physical Rg (with 3/5 factor).
         return np.sqrt(3.0 / 5.0) * aggregate.radii[0]

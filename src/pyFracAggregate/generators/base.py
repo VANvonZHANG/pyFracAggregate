@@ -3,9 +3,7 @@ from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.core.distributions import ParticleDistribution
 
 class BaseGenerator(ABC):
-    """
-    生成器抽象基类
-    """
+    """Abstract base class for generators."""
     def __init__(
         self,
         n_particles: int,
@@ -14,15 +12,14 @@ class BaseGenerator(ABC):
         particle_dist: ParticleDistribution,
         overlap_tolerance: float = 0.0
     ):
-        """
-        初始化生成器
+        """Initializes the generator.
         
         Args:
-            n_particles (int): 目标粒子数。
-            df (float): 分形维数 (Fractal dimension)。
-            kf (float): 分形前置因子 (Fractal prefactor)。
-            particle_dist (ParticleDistribution): 粒径分布。
-            overlap_tolerance (float): 粒子重叠容差。
+            n_particles (int): Target number of particles.
+            df (float): Fractal dimension.
+            kf (float): Fractal prefactor.
+            particle_dist (ParticleDistribution): Particle size distribution.
+            overlap_tolerance (float): Particle overlap tolerance.
         """
         self.n_particles = n_particles
         self.df = df
@@ -32,10 +29,9 @@ class BaseGenerator(ABC):
 
     @abstractmethod
     def generate(self) -> Aggregate:
-        """
-        执行生成逻辑
+        """Executes the generation logic.
         
         Returns:
-            Aggregate: 生成的分形团簇。
+            Aggregate: The generated fractal cluster.
         """
         pass

@@ -4,7 +4,7 @@ import numpy as np
 import pyFracAggregate as pfa
 
 def test_cca_filippov_generation():
-    # 生成 15 个粒子，强制使用 cca 方法
+    # Generate 15 particles, forcing the use of the CCA method
     agg = pfa.generate(
         n_particles=15,
         df=1.8,
@@ -18,7 +18,7 @@ def test_cca_filippov_generation():
     radii = agg.radii
     overlap_tolerance = 1e-5
     
-    # 检查重叠
+    # Check for overlaps
     for i in range(15):
         for j in range(i + 1, 15):
             dist = np.linalg.norm(positions[i] - positions[j])
@@ -26,7 +26,7 @@ def test_cca_filippov_generation():
             assert dist >= min_dist - 1e-4
 
 def test_cca_filippov_small_particles():
-    # 对于小粒子数 (<=8)，算法会自动退化到 PCA
+    # For small particle counts (<= 8), the algorithm automatically falls back to PCA
     agg = pfa.generate(
         n_particles=5,
         df=1.8,

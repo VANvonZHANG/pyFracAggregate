@@ -9,36 +9,37 @@ def find_exact_touching_points_pca(
     r_ref: float,
     num_points: int = 8
 ) -> np.ndarray:
-    """
-    基于 Skorupski 等 (2014) FLAGE 算法的解析几何求解器（适用于 PCA）。
-    计算新粒子在距离中心为 L 的球面上，同时恰好与参考粒子相切的位置。
+    """Analytical geometric solver for PCA based on the FLAGE algorithm (Skorupski et al., 2014).
     
-    这相当于求两个球面的交线：
-    1. 以 center 为球心，半径为 L 的球面。
-    2. 以 ref_pos 为球心，半径为 r_new + r_ref 的球面。
+    Calculates positions on a sphere centered at `center` with radius `L` where
+    a new particle exactly touches a reference particle.
+    
+    This is equivalent to finding the intersection of two spheres:
+    1. Sphere centered at `center` with radius `L`.
+    2. Sphere centered at `ref_pos` with radius `r_new + r_ref`.
     
     Args:
-        center (np.ndarray): 团簇质心/几何中心。
-        L (float): 新粒子与中心的距离限制。
-        ref_pos (np.ndarray): 参考粒子的坐标。
-        r_new (float): 新粒子的半径。
-        r_ref (float): 参考粒子的半径。
-        num_points (int): 在交线圆上采样的点数。
+        center (np.ndarray): Cluster centroid/geometric center.
+        L (float): Distance constraint for the new particle from the center.
+        ref_pos (np.ndarray): Coordinates of the reference particle.
+        r_new (float): Radius of the new particle.
+        r_ref (float): Radius of the reference particle.
+        num_points (int): Number of points to sample on the intersection circle.
         
     Returns:
-        np.ndarray: 形状为 (K, 3) 的有效坐标点数组 (可能为空，如果两个球面不相交)。
+        np.ndarray: Array of valid coordinate points (K, 3), may be empty if spheres don't intersect.
     """
-    # 向量 C -> B (中心到参考粒子)
+    # Vector C -> B (Center to reference particle)
     CB = ref_pos - center
     dist_CB = np.linalg.norm(CB)
     
     if dist_CB < 1e-8:
-        # 参考粒子在中心，交线不再是圆，而是如果 L == r_new + r_ref 则是整个球面
-        # 此处不处理这种极端退化情况
+        # Reference particle at center, intersection is the entire sphere if L == r_new + r_ref
+        # This degenerate case is not handled here
         return np.empty((0, 3))
         
-    # 余弦定理计算角度 alpha
-    # 三角形 CAB 中:
+    # Law of Cosines to calculate angle alpha
+    # In triangle CAB:
     # |CA| = L
     # |CB| = dist_CB
     # |AB| = r_new + r_ref
@@ -47,30 +48,30 @@ def find_exact_touching_points_pca(
     cos_alpha = (L**2 + dist_CB**2 - dist_AB**2) / (2 * L * dist_CB)
     
     if cos_alpha < -1.0 or cos_alpha > 1.0:
-        # 两个球面不相交
+        # Spheres do not intersect
         return np.empty((0, 3))
         
     alpha = np.arccos(cos_alpha)
     
-    # 构建一个正交基，其中 u 平行于 CB
+    # Build an orthogonal basis where u is parallel to CB
     u = CB / dist_CB
     
-    # 找一个与 u 正交的随机向量 v
+    # Find a random vector v orthogonal to u
     temp = np.array([1.0, 0.0, 0.0])
     if np.abs(np.dot(u, temp)) > 0.9:
         temp = np.array([0.0, 1.0, 0.0])
     v = np.cross(u, temp)
     v /= np.linalg.norm(v)
     
-    # w 与 u, v 构成右手正交基
+    # w forms a right-handed orthogonal basis with u and v
     w = np.cross(u, v)
     
-    # 圆的半径和中心
-    # 新粒子 A 的投影点在 CB 上的长度为 L * cos_alpha
+    # Circle radius and center
+    # Projection of new particle A onto CB has length L * cos_alpha
     circle_center = center + u * (L * cos_alpha)
     circle_radius = L * np.sin(alpha)
     
-    # 在圆上采样 num_points 个点
+    # Sample num_points on the circle
     thetas = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
     
     points = np.zeros((num_points, 3))
@@ -86,14 +87,13 @@ def filter_overlapping_candidates(
     r_new: float,
     overlap_tolerance: float = 1e-5
 ) -> np.ndarray:
-    """
-    过滤掉发生重叠的候选点。
+    """Filters candidate points that overlap with existing particles.
     """
     if len(candidates) == 0:
         return candidates
         
     valid_candidates = []
-    # min_dists 广播
+    # min_dists broadcast
     min_dists = radii + r_new - overlap_tolerance
     
     for cand in candidates:

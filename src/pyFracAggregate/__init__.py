@@ -26,24 +26,24 @@ def generate(
     overlap_tolerance: float = 0.0,
     **kwargs
 ) -> Aggregate:
-    """
-    统一的顶层分形团簇生成接口。
+    """Unified top-level interface for fractal cluster generation.
     
     Args:
-        n_particles (int): 团簇包含的粒子总数。
-        df (float): 分形维数 (Fractal Dimension, 1.0 < df <= 3.0)。
-        kf (float): 分形前置因子 (Fractal Prefactor)。
-        method (str): 核心生成逻辑，可选 'pca', 'cca', 'fracval'。
-        optimization (str): 底层加速引擎，可选 'monte_carlo' 或 'flage'。
-        particle_dist (ParticleDistribution, optional): 粒径分布。默认单分散(半径1.0)。
-        overlap_tolerance (float): 允许的粒子重叠深度。默认 0.0。
-        **kwargs: 其它参数，会向下传递给特定算法。
+        n_particles (int): Total number of particles in the cluster.
+        df (float): Fractal dimension (1.0 < df <= 3.0).
+        kf (float): Fractal prefactor.
+        method (str): Core generation logic ('pca', 'cca', 'fracval').
+        optimization (str): Underlying acceleration engine ('monte_carlo' or 'flage').
+        particle_dist (ParticleDistribution, optional): Particle size distribution.
+            Defaults to Monodisperse(1.0).
+        overlap_tolerance (float): Allowed overlap depth between particles. Defaults to 0.0.
+        **kwargs: Additional parameters passed to the specific algorithm.
         
     Returns:
-        Aggregate: 生成完毕并填充坐标的团簇对象。
+        Aggregate: Generated cluster object with filled coordinates.
         
     Raises:
-        ValueError: 若参数不合法 (如 df > 3.0)。
+        ValueError: If parameters are invalid (e.g., df > 3.0).
     """
     if df <= 0.0 or df > 3.0:
         raise ValueError("Fractal dimension df must be in (0, 3.0]")

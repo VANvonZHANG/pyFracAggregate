@@ -4,12 +4,13 @@ import textwrap
 from pyFracAggregate.core.aggregate import Aggregate
 
 def export_to_json(aggregate: Aggregate, filepath: str) -> None:
-    """
-    将团簇数据导出为 JSON 文件，用于与外部渲染器（如 Blender）进行轻量级解耦通信。
+    """Exports cluster data to a JSON file for lightweight decoupled communication.
+
+    Used for external renderers like Blender.
     
     Args:
-        aggregate (Aggregate): 要导出的团簇对象。
-        filepath (str): JSON 文件的输出路径。
+        aggregate (Aggregate): The cluster object to export.
+        filepath (str): Output path for the JSON file.
     """
     positions = aggregate.positions.tolist()
     radii = aggregate.radii.tolist()
@@ -33,15 +34,16 @@ def export_to_json(aggregate: Aggregate, filepath: str) -> None:
         json.dump(data, f, indent=2)
 
 def generate_blender_script(json_filepath: str, output_script_path: str) -> None:
-    """
-    生成一个可直接在 Blender 中运行的 Python 脚本。
-    该脚本会读取指定的 JSON 文件，使用顶点实例化（或 Geometry Nodes）高效生成海量粒子。
+    """Generates a Python script that can be run directly within Blender.
+
+    The script reads a JSON file and uses vertex instancing (or Geometry Nodes) 
+    to efficiently generate massive numbers of particles.
     
     Args:
-        json_filepath (str): 前置步骤生成的 JSON 数据文件绝对路径。
-        output_script_path (str): 生成的 Blender Python 挂载脚本路径。
+        json_filepath (str): Absolute path to the JSON data file generated previously.
+        output_script_path (str): Path for the generated Blender Python script.
     """
-    # 转换为绝对路径，避免在 Blender 执行时由于工作目录问题找不到文件
+    # Convert to absolute path to avoid file-not-found issues in Blender due to working directory
     abs_json_path = os.path.abspath(json_filepath).replace('\\', '/')
     
     script_content = f"""\
@@ -65,17 +67,17 @@ def generate_blender_script(json_filepath: str, output_script_path: str) -> None
         
         print(f"Loading {{num_particles}} particles from JSON...")
         
-        # 1. 创建基础网格对象存储所有顶点位置
+        # 1. Create base mesh object to store all vertex positions
         mesh = bpy.data.meshes.new(name="Fractal_Mesh")
         obj = bpy.data.objects.new("Fractal_Aggregate", mesh)
         bpy.context.collection.objects.link(obj)
         
-        # 将点坐标写入 mesh
+        # Write point coordinates to mesh
         verts = [(p['x'], p['y'], p['z']) for p in particles]
         mesh.from_pydata(verts, [], [])
         mesh.update()
         
-        # 将半径写入顶点属性 (自定义属性)
+        # Write radii to vertex attributes (custom attribute)
         radii = [p['r'] for p in particles]
         if 'radius' not in mesh.attributes:
             radius_attr = mesh.attributes.new(name='radius', type='FLOAT', domain='POINT')
@@ -84,17 +86,17 @@ def generate_blender_script(json_filepath: str, output_script_path: str) -> None
             
         radius_attr.data.foreach_set('value', radii)
         
-        # 2. 为对象添加 Geometry Nodes 修饰器
+        # 2. Add Geometry Nodes modifier to the object
         modifier = obj.modifiers.new(name="GeometryNodes", type='NODES')
         
-        # 创建新的 Node Tree
+        # Create new Node Tree
         node_tree = bpy.data.node_groups.new(name="Fractal_Instance_Tree", type='GeometryNodeTree')
         modifier.node_group = node_tree
         
-        # 清空默认节点
+        # Clear default nodes
         node_tree.nodes.clear()
         
-        # 构建节点网络
+        # Build node network
         # ----------------------------------------------------
         # Group Input
         node_input = node_tree.nodes.new('NodeGroupInput')
@@ -105,13 +107,13 @@ def generate_blender_script(json_filepath: str, output_script_path: str) -> None
         node_instance = node_tree.nodes.new('GeometryNodeInstanceOnPoints')
         node_instance.location = (0, 0)
         
-        # Ico Sphere (作为基础粒子)
+        # Ico Sphere (as base particle)
         node_sphere = node_tree.nodes.new('GeometryNodeMeshIcoSphere')
         node_sphere.inputs['Subdivisions'].default_value = 3
-        node_sphere.inputs['Radius'].default_value = 1.0  # 基础半径 1.0
+        node_sphere.inputs['Radius'].default_value = 1.0  # Base radius 1.0
         node_sphere.location = (-200, -200)
         
-        # Named Attribute (读取我们在 mesh 中存入的 'radius' 属性)
+        # Named Attribute (reading the 'radius' attribute we stored in the mesh)
         node_attr = node_tree.nodes.new('GeometryNodeInputNamedAttribute')
         node_attr.data_type = 'FLOAT'
         node_attr.inputs['Name'].default_value = 'radius'
@@ -126,7 +128,7 @@ def generate_blender_script(json_filepath: str, output_script_path: str) -> None
         node_tree.interface.new_socket(name="Geometry", in_out='OUT', socket_type='NodeSocketGeometry')
         node_output.location = (400, 0)
         
-        # 链接节点
+        # Link nodes
         links = node_tree.links
         links.new(node_input.outputs[0], node_instance.inputs['Points'])
         links.new(node_sphere.outputs['Mesh'], node_instance.inputs['Instance'])
@@ -134,14 +136,14 @@ def generate_blender_script(json_filepath: str, output_script_path: str) -> None
         links.new(node_instance.outputs['Instances'], node_smooth.inputs['Geometry'])
         links.new(node_smooth.outputs['Geometry'], node_output.inputs[0])
         
-        # 将视角对准生成的物体
+        # Center view on generated object
         bpy.ops.object.select_all(action='DESELECT')
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
         try:
             bpy.ops.view3d.view_selected()
         except RuntimeError:
-            pass # 可能在后台无 UI 模式下运行
+            pass # Might be running in background/headless mode
             
         print("Fractal Aggregate successfully loaded into Blender Geometry Nodes!")
 

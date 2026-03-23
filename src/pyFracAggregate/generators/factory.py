@@ -13,23 +13,22 @@ def get_generator(
     overlap_tolerance: float = 0.0,
     **kwargs
 ) -> BaseGenerator:
-    """
-    获取对应的分形团簇生成器。
+    """Gets the corresponding fractal cluster generator.
     
     Args:
-        method (str): 生成算法，例如 'pca', 'cca', 'fracval'。
-        n_particles (int): 粒子数量。
-        df (float): 分形维数。
-        kf (float): 分形前置因子。
-        particle_dist (ParticleDistribution): 粒径分布。
-        overlap_tolerance (float): 重叠容差。
-        **kwargs: 其它算法特定参数。
+        method (str): Generation algorithm ('pca', 'cca', 'fracval').
+        n_particles (int): Number of particles.
+        df (float): Fractal dimension.
+        kf (float): Fractal prefactor.
+        particle_dist (ParticleDistribution): Particle size distribution.
+        overlap_tolerance (float): Overlap tolerance.
+        **kwargs: Additional algorithm-specific parameters.
         
     Returns:
-        BaseGenerator: 生成器实例。
+        BaseGenerator: Generator instance.
         
     Raises:
-        ValueError: 若 method 不被支持。
+        ValueError: If method is not supported.
     """
     method = method.lower()
     if method == 'pca':

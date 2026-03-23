@@ -1,80 +1,76 @@
 import numpy as np
 
 class Aggregate:
-    """
-    核心物理实体，表示一个分形团簇。
-    基于 NumPy 预分配连续内存矩阵，提供极高的数据局部性和访问性能。
+    """Core physical entity representing a fractal cluster.
+
+    Uses pre-allocated contiguous memory via NumPy for high data locality 
+    and access performance.
     """
     def __init__(self, max_particles: int):
-        """
-        初始化 Aggregate 对象。
+        """Initializes the Aggregate object.
 
         Args:
-            max_particles (int): 团簇预计能容纳的最大粒子数。
+            max_particles (int): Maximum number of particles the cluster can hold.
 
         Raises:
-            ValueError: 如果 max_particles <= 0。
+            ValueError: If max_particles <= 0.
         """
         if max_particles <= 0:
             raise ValueError("max_particles must be positive")
         
-        # 数据结构为 [x, y, z, radius, mass] 预分配内存
+        # Data structure: [x, y, z, radius, mass] with pre-allocated memory
         self._data = np.zeros((max_particles, 5), dtype=np.float64)
         self._current_size = 0  
 
     @property
     def positions(self) -> np.ndarray:
-        """
-        获取粒子的坐标。
+        """Gets particle coordinates.
 
         Returns:
-            np.ndarray: 形状为 (N, 3) 的零拷贝视图 (Zero-copy view)。
+            np.ndarray: A zero-copy view with shape (N, 3).
         """
         return self._data[:self._current_size, :3]
     
     @property
     def radii(self) -> np.ndarray:
-        """
-        获取粒子的半径。
+        """Gets particle radii.
 
         Returns:
-            np.ndarray: 形状为 (N,) 的零拷贝视图。
+            np.ndarray: A zero-copy view with shape (N,).
         """
         return self._data[:self._current_size, 3]
 
     @property
     def masses(self) -> np.ndarray:
-        """
-        获取粒子的质量。
+        """Gets particle masses.
 
         Returns:
-            np.ndarray: 形状为 (N,) 的零拷贝视图。
+            np.ndarray: A zero-copy view with shape (N,).
         """
         return self._data[:self._current_size, 4]
         
     @property
     def current_size(self) -> int:
-        """获取当前包含的粒子总数。"""
+        """Gets the current total number of particles."""
         return self._current_size
         
     @property
     def max_size(self) -> int:
-        """获取最大允许的粒子数。"""
+        """Gets the maximum allowed number of particles."""
         return len(self._data)
 
     def add_particle(self, x: float, y: float, z: float, r: float, m: float) -> None:
-        """
-        添加一个新粒子。O(1) 复杂度。
+        """Adds a new particle. O(1) complexity.
 
         Args:
-            x (float): X 坐标
-            y (float): Y 坐标
-            z (float): Z 坐标
-            r (float): 半径
-            m (float): 质量
+            x (float): X coordinate
+            y (float): Y coordinate
+            z (float): Z coordinate
+            r (float): Radius
+            m (float): Mass
 
         Raises:
-            RuntimeError: 如果团簇达到最大容量导致越界。
+            RuntimeError: If cluster reaches maximum capacity.
         """
         if self._current_size >= len(self._data):
             raise RuntimeError("Aggregate capacity exceeded")
@@ -83,10 +79,9 @@ class Aggregate:
         self._current_size += 1
         
     def to_numpy(self) -> np.ndarray:
-        """
-        导出当前有效粒子的拷贝。
+        """Exports a copy of valid particles.
 
         Returns:
-            np.ndarray: 形状为 (N, 5) 的数据拷贝。
+            np.ndarray: A copy of the data with shape (N, 5).
         """
         return self._data[:self._current_size].copy()

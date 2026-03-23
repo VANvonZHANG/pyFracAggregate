@@ -2,32 +2,28 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class ParticleDistribution(ABC):
-    """
-    粒径分布抽象基类
-    """
+    """Abstract base class for particle size distributions."""
     @abstractmethod
     def sample(self, n: int) -> np.ndarray:
-        """
-        采样生成 n 个粒径。
+        """Samples n particle sizes.
         
         Args:
-            n (int): 需生成的粒子数量。
+            n (int): Number of particle sizes to generate.
             
         Returns:
-            np.ndarray: 形状为 (n,) 的粒径数组。
+            np.ndarray: An array of particle sizes with shape (n,).
         """
         pass
 
 class Monodisperse(ParticleDistribution):
-    """
-    单分散分布（所有粒子半径相同）。
-    """
+    """Monodisperse distribution (all particles have the same radius)."""
     def __init__(self, radius: float):
-        """
+        """Initializes the distribution.
+
         Args:
-            radius (float): 粒子半径。
+            radius (float): Particle radius.
         Raises:
-            ValueError: 若半径 <= 0。
+            ValueError: If radius <= 0.
         """
         if radius <= 0:
             raise ValueError("Radius must be positive")
@@ -37,17 +33,16 @@ class Monodisperse(ParticleDistribution):
         return np.full(n, self.radius, dtype=np.float64)
 
 class LognormalDistribution(ParticleDistribution):
-    """
-    对数正态分布。
-    """
+    """Lognormal distribution."""
     def __init__(self, mean: float, std: float):
-        """
+        """Initializes the distribution.
+
         Args:
-            mean (float): 几何均值 (Geometric mean)。
-            std (float): 几何标准差 (Geometric standard deviation)。应该 >= 1.0。
+            mean (float): Geometric mean.
+            std (float): Geometric standard deviation (should be >= 1.0).
             
         Raises:
-            ValueError: 若 mean 或 std 不合法。
+            ValueError: If mean or std is invalid.
         """
         if mean <= 0:
             raise ValueError("Mean must be positive")
@@ -57,7 +52,7 @@ class LognormalDistribution(ParticleDistribution):
         self.mean = mean
         self.std = std
         
-        # 计算底层正态分布的均值和标准差
+        # Calculate mean and standard deviation of the underlying normal distribution
         self.normal_mean = np.log(self.mean)
         self.normal_std = np.log(self.std) if self.std > 1.0 else 0.0
         
