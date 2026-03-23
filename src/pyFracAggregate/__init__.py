@@ -1,53 +1,36 @@
-"""pyFracAggregate core package."""
-
-from typing import Optional
-
 from pyFracAggregate.core.aggregate import Aggregate
-from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution, ParticleDistribution
 from pyFracAggregate.generators.factory import get_generator
-import pyFracAggregate.analysis as analyze
+from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution
+from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
+from pyFracAggregate.analysis.correlation import pair_correlation_function
+from pyFracAggregate.io.blender import export_to_blender_script
 
-__all__ = [
-    "Aggregate",
-    "Monodisperse",
-    "LognormalDistribution",
-    "ParticleDistribution",
-    "generate",
-    "analyze"
-]
+__version__ = "0.1.0"
+__author__ = "Fan Zhang"
 
 def generate(
-    n_particles: int, 
-    df: float, 
-    kf: float, 
+    n_particles: int,
+    df: float,
+    kf: float,
     method: str = 'pca',
-    optimization: str = 'monte_carlo',
-    particle_dist: Optional[ParticleDistribution] = None,
-    overlap_tolerance: float = 0.0,
+    particle_dist = None,
+    overlap_tolerance: float = 1e-5,
     **kwargs
 ) -> Aggregate:
-    """Unified top-level interface for fractal cluster generation.
+    """
+    High-level API to generate a fractal aggregate.
     
     Args:
-        n_particles (int): Total number of particles in the cluster.
-        df (float): Fractal dimension (1.0 < df <= 3.0).
-        kf (float): Fractal prefactor.
-        method (str): Core generation logic ('pca', 'cca', 'fracval').
-        optimization (str): Underlying acceleration engine ('monte_carlo' or 'flage').
-        particle_dist (ParticleDistribution, optional): Particle size distribution.
-            Defaults to Monodisperse(1.0).
-        overlap_tolerance (float): Allowed overlap depth between particles. Defaults to 0.0.
-        **kwargs: Additional parameters passed to the specific algorithm.
+        n_particles (int): Target number of particles.
+        df (float): Fractal dimension (typically 1.5 - 2.5).
+        kf (float): Fractal prefactor (typically 1.0 - 2.0).
+        method (str): Algorithm to use ('pca', 'cca', 'fracval').
+        particle_dist: Particle radius distribution (defaults to Monodisperse(1.0)).
+        overlap_tolerance (float): Allowed overlap between spheres.
         
     Returns:
-        Aggregate: Generated cluster object with filled coordinates.
-        
-    Raises:
-        ValueError: If parameters are invalid (e.g., df > 3.0).
+        Aggregate: The generated fractal aggregate.
     """
-    if df <= 0.0 or df > 3.0:
-        raise ValueError("Fractal dimension df must be in (0, 3.0]")
-        
     if particle_dist is None:
         particle_dist = Monodisperse(1.0)
         
@@ -58,8 +41,29 @@ def generate(
         kf=kf,
         particle_dist=particle_dist,
         overlap_tolerance=overlap_tolerance,
-        optimization=optimization,
         **kwargs
     )
     
     return generator.generate()
+
+def analyze(aggregate: Aggregate):
+    """
+    Compute core morphological properties.
+    """
+    return {
+        "Rg": radius_of_gyration(aggregate),
+        "CoM": center_of_mass(aggregate),
+        "N": aggregate.current_size
+    }
+
+__all__ = [
+    "generate",
+    "analyze",
+    "Aggregate",
+    "Monodisperse",
+    "LognormalDistribution",
+    "radius_of_gyration",
+    "center_of_mass",
+    "pair_correlation_function",
+    "export_to_blender_script"
+]
