@@ -10,10 +10,8 @@ def export_to_blender_script(
 ) -> None:
     """
     Exports the aggregate structure to a standalone Python script that can be 
-    executed inside Blender's scripting tab.
-    
-    The generated script will create a collection and spheres for each particle 
-    at the specified coordinates and radii.
+    executed inside Blender. This script ONLY handles geometry loading and material assignment,
+    without configuring the scene's camera or lighting.
     
     Args:
         aggregate (Aggregate): The fractal aggregate object to export.
@@ -33,11 +31,10 @@ def export_to_blender_script(
 import bpy
 import random
 
-def create_aggregate():
+def load_aggregate():
     # Create a new collection for the aggregate
     collection_name = "{object_name}"
     if collection_name in bpy.data.collections:
-        # If exists, link to the existing one or create a sub-collection
         collection = bpy.data.collections[collection_name]
     else:
         collection = bpy.data.collections.new(collection_name)
@@ -53,8 +50,8 @@ def create_aggregate():
         if {use_random_color}:
             principled.inputs[0].default_value = (random.random(), random.random(), random.random(), 1.0)
         else:
-            principled.inputs[0].default_value = (0.1, 0.1, 0.1, 1.0) # Default dark soot-like color
-        principled.inputs[7].default_value = 0.8 # Roughness
+            principled.inputs[0].default_value = (0.05, 0.05, 0.05, 1.0) # Default dark soot color
+        principled.inputs[7].default_value = 0.9 # Roughness
 
     # Sphere data
     particles = {positions.tolist()}
@@ -62,10 +59,9 @@ def create_aggregate():
 
     # Batch create spheres
     for i, (pos, r) in enumerate(zip(particles, radii)):
-        # Create a sphere mesh
         bpy.ops.mesh.primitive_uv_sphere_add(
-            segments=32, 
-            ring_count=16, 
+            segments=16, 
+            ring_count=8, 
             radius=r, 
             location=pos
         )
@@ -80,14 +76,14 @@ def create_aggregate():
         
         # Shade smooth
         bpy.ops.object.shade_smooth()
-
-    print(f"Imported {{len(particles)}} particles into collection '{{collection_name}}'.")
+        
+    print(f"Successfully loaded {{len(particles)}} particles into collection '{{collection_name}}'.")
 
 if __name__ == "__main__":
-    create_aggregate()
+    load_aggregate()
 """
     
     with open(output_path, 'w') as f:
         f.write(script_content)
     
-    print(f"Blender script successfully exported to: {output_path}")
+    print(f"Blender load script successfully exported to: {output_path}")
