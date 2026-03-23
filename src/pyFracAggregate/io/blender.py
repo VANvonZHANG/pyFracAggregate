@@ -1,89 +1,83 @@
 import numpy as np
-import datetime
+import bpy
 from pyFracAggregate.core.aggregate import Aggregate
+import os
 
-def export_to_blender_script(
+def build_aggregate_in_blender(
     aggregate: Aggregate,
-    output_path: str,
-    object_name: str = "Fractal_Aggregate",
+    collection_name: str = "Fractal_Aggregate",
     use_random_color: bool = True
 ) -> None:
     """
-    Exports the aggregate structure to a standalone Python script that can be 
-    executed inside Blender. This script ONLY handles geometry loading and material assignment,
-    without configuring the scene's camera or lighting.
+    Builds the aggregate directly in the current Blender scene using low-level API 
+    for maximum performance. Assumes `bpy` is available in the environment.
     
     Args:
-        aggregate (Aggregate): The fractal aggregate object to export.
-        output_path (str): The path to save the generated .py script.
-        object_name (str): The name prefix for the generated objects in Blender.
+        aggregate (Aggregate): The fractal aggregate object to build.
+        collection_name (str): The name of the collection to store the particles.
         use_random_color (bool): If True, assigns a random color to the aggregate's material.
     """
-    positions = aggregate.positions
-    radii = aggregate.radii
-    
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    script_content = f"""# Blender Import Script for pyFracAggregate
-# Generated on: {now}
-# Number of particles: {len(positions)}
-
-import bpy
-import random
-
-def load_aggregate():
-    # Create a new collection for the aggregate
-    collection_name = "{object_name}"
+    # 1. Setup Collection
     if collection_name in bpy.data.collections:
         collection = bpy.data.collections[collection_name]
     else:
         collection = bpy.data.collections.new(collection_name)
         bpy.context.scene.collection.children.link(collection)
 
-    # Create a material
-    mat = bpy.data.materials.new(name="{object_name}_Material")
+    # 2. Setup Material
+    mat = bpy.data.materials.new(name=f"{collection_name}_Material")
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
     principled = nodes.get("Principled BSDF")
     
     if principled:
-        if {use_random_color}:
+        if use_random_color:
+            import random
             principled.inputs[0].default_value = (random.random(), random.random(), random.random(), 1.0)
         else:
-            principled.inputs[0].default_value = (0.05, 0.05, 0.05, 1.0) # Default dark soot color
+            principled.inputs[0].default_value = (0.05, 0.05, 0.05, 1.0) # Default dark soot
         principled.inputs[7].default_value = 0.9 # Roughness
 
-    # Sphere data
-    particles = {positions.tolist()}
-    radii = {radii.tolist()}
+    # 3. Create a master sphere mesh
+    # We use a primitive operator once, then duplicate its data for performance
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=1.0, location=(0, 0, 0))
+    master_obj = bpy.context.active_object
+    master_mesh = master_obj.data
+    
+    # Shade smooth the master mesh
+    for poly in master_mesh.polygons:
+        poly.use_smooth = True
+        
+    bpy.data.objects.remove(master_obj) # Remove the master object, keep the mesh data
 
-    # Batch create spheres
-    for i, (pos, r) in enumerate(zip(particles, radii)):
-        bpy.ops.mesh.primitive_uv_sphere_add(
-            segments=16, 
-            ring_count=8, 
-            radius=r, 
-            location=pos
-        )
-        obj = bpy.context.active_object
-        obj.name = f"{object_name}_P{{i:04d}}"
+    # 4. Batch create particles using low-level API
+    positions = aggregate.positions
+    radii = aggregate.radii
+    
+    for i, (pos, r) in enumerate(zip(positions, radii)):
+        # Create new object sharing the master mesh
+        obj = bpy.data.objects.new(f"{collection_name}_P{i:04d}", master_mesh)
+        
+        # Set transform
+        obj.location = pos
+        obj.scale = (r, r, r)
+        
+        # Assign material
         obj.data.materials.append(mat)
         
-        # Move to our collection
-        for old_col in obj.users_collection:
-            old_col.objects.unlink(obj)
+        # Link to collection
         collection.objects.link(obj)
-        
-        # Shade smooth
-        bpy.ops.object.shade_smooth()
-        
-    print(f"Successfully loaded {{len(particles)}} particles into collection '{{collection_name}}'.")
 
-if __name__ == "__main__":
-    load_aggregate()
-"""
+    print(f"Successfully built {len(positions)} particles into collection '{collection_name}'.")
+
+
+def save_blend_file(output_path: str) -> None:
+    """
+    Saves the current Blender scene state to a .blend file.
     
-    with open(output_path, 'w') as f:
-        f.write(script_content)
-    
-    print(f"Blender load script successfully exported to: {output_path}")
+    Args:
+        output_path (str): The path where the .blend file will be saved.
+    """
+    abs_path = os.path.abspath(output_path)
+    bpy.ops.wm.save_as_mainfile(filepath=abs_path)
+    print(f"Blender scene successfully saved to: {abs_path}")

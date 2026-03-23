@@ -3,7 +3,7 @@ Example: Generating and Exporting a Complex Soot Aggregate
 ----------------------------------------------------------
 This script demonstrates how to generate a fractal-like aggregate using 
 the FracVAL method (multi-disperse), calculate its physical properties, 
-and export pure data (JSON) and a basic Blender loading script.
+and directly build the scene in Blender, saving it as a .blend file.
 
 Author: Fan Zhang
 """
@@ -43,26 +43,24 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         
-    blender_script_path = os.path.join(output_dir, "load_aggregate.py")
     json_path = os.path.join(output_dir, "aggregate_data.json")
-    
-    # Export basic Blender script (only loads meshes, no rendering logic)
-    pfa.export_to_blender_script(
-        aggregate, 
-        output_path=blender_script_path,
-        object_name="Soot_Cluster_Final",
-        use_random_color=True
-    )
+    blend_path = os.path.join(output_dir, "aggregate_scene.blend")
     
     # Export pure JSON data
     pfa.export_to_json(aggregate, json_path)
     
+    # 5. Build directly in Blender and save .blend
+    print("\n--- Building in Blender ---")
+    pfa.build_aggregate_in_blender(
+        aggregate,
+        collection_name="Soot_Cluster_Final",
+        use_random_color=True
+    )
+    pfa.save_blend_file(blend_path)
+    
     print(f"\nExample completed.")
-    print(f"Load script: {blender_script_path}")
     print(f"JSON Data: {json_path}")
-    print("\nTo visualize in Blender:")
-    print("1. Open Blender -> Scripting Tab -> Run `load_aggregate.py`")
-    print("2. Run the `examples/blender_render_setup.py` script to setup lights and camera.")
+    print(f"Blender Scene: {blend_path}")
 
 if __name__ == "__main__":
     main()

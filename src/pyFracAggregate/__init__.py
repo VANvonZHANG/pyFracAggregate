@@ -3,7 +3,7 @@ from pyFracAggregate.generators.factory import get_generator
 from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution
 from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
 from pyFracAggregate.analysis.correlation import pair_correlation_function
-from pyFracAggregate.io.blender import export_to_blender_script
+from pyFracAggregate.io.blender import build_aggregate_in_blender, save_blend_file
 from pyFracAggregate.io.data import export_to_json
 
 __version__ = "0.1.0"
@@ -66,6 +66,7 @@ __all__ = [
     "radius_of_gyration",
     "center_of_mass",
     "pair_correlation_function",
-    "export_to_blender_script",
+    "build_aggregate_in_blender",
+    "save_blend_file",
     "export_to_json"
 ]
