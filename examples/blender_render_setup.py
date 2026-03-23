@@ -40,8 +40,9 @@ def setup_lighting_and_camera(collection_name="Soot_Cluster_Final"):
     cam_dist = max_dim * 3.5
     cam_obj.location = (center[0] + cam_dist, center[1] + cam_dist, center[2] + cam_dist * 0.5)
     
+    import mathutils
     # Point camera towards center
-    direction = center - cam_obj.location
+    direction = mathutils.Vector(center - cam_obj.location)
     rot_quat = direction.to_track_quat('-Z', 'Y')
     cam_obj.rotation_mode = 'QUATERNION'
     cam_obj.rotation_quaternion = rot_quat
