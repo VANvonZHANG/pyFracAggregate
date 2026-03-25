@@ -14,12 +14,11 @@ class CCAFilippovGenerator(BaseGenerator):
         # If particle count is small, fallback to PCA processing
         if self.n_particles <= 8:
             pca_gen = PCAFilippovGenerator(
-                self.n_particles, self.df, self.kf, self.particle_dist, self.overlap_tolerance
+                self.n_particles, self.df, self.kf, self.particle_dist, self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
             )
             return pca_gen.generate()
             
         radii = self.particle_dist.sample(self.n_particles)
-        masses = (4.0 / 3.0) * np.pi * (radii ** 3)
         
         # 1. Initialize sub-cluster list using PCA, each with 5-8 particles (fixed at 5 here)
         cluster_list = []
@@ -30,16 +29,6 @@ class CCAFilippovGenerator(BaseGenerator):
             rem = self.n_particles - idx
             curr_size = cluster_size if rem >= cluster_size * 1.5 else rem
             
-            sub_agg = Aggregate(curr_size)
-            # For the first phase, use monodisperse or local geometric properties
-            pca_gen = PCAFilippovGenerator(
-                curr_size, self.df, self.kf, self.particle_dist, self.overlap_tolerance
-            )
-            
-            # Manually inject specific radii and masses; reusing PCA logic is slightly complex.
-            # We generate structure with PCAFilippovGenerator, then scale radii to match.
-            # Simplified: generate standard sub-cluster, then replace with pre-sampled radii.
-            
             # Since current PCAFilippov doesn't support direct pre-sampled radii injection,
             # we dynamically create a pseudo-distribution.
             class LocalDist:
@@ -48,7 +37,9 @@ class CCAFilippovGenerator(BaseGenerator):
                 def sample(self, n):
                     return self.r
                     
-            local_pca = PCAFilippovGenerator(curr_size, self.df, self.kf, LocalDist(radii[idx:idx+curr_size]), self.overlap_tolerance)
+            local_pca = PCAFilippovGenerator(
+                curr_size, self.df, self.kf, LocalDist(radii[idx:idx+curr_size]), self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
+            )
             sub_agg = local_pca.generate()
             cluster_list.append(sub_agg)
             idx += curr_size
@@ -141,7 +132,7 @@ class CCAFilippovGenerator(BaseGenerator):
             # Check for point contact within tolerance
             if current_min_gap <= tolerance:
                 # Successful merge
-                merged = Aggregate(N)
+                merged = Aggregate(N, self.length_unit, self.mass_unit, self.density)
                 for i in range(N1):
                     merged.add_particle(pos1[i,0], pos1[i,1], pos1[i,2], agg1.radii[i], agg1.masses[i])
                 for j in range(N2):
@@ -157,7 +148,7 @@ class CCAFilippovGenerator(BaseGenerator):
             # (theoretically only happens if Gamma < r1 + r2)
             best_candidate = candidate_pos2
             
-        merged = Aggregate(N)
+        merged = Aggregate(N, self.length_unit, self.mass_unit, self.density)
         for i in range(N1):
             merged.add_particle(pos1[i,0], pos1[i,1], pos1[i,2], agg1.radii[i], agg1.masses[i])
         for j in range(N2):

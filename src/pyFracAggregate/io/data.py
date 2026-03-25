@@ -11,6 +11,9 @@ def export_to_json(aggregate: Aggregate, output_path: str) -> None:
     """
     data = {
         "num_particles": aggregate.current_size,
+        "length_unit": aggregate.length_unit,
+        "mass_unit": aggregate.mass_unit,
+        "density": aggregate.density,
         "positions": aggregate.positions.tolist(),
         "radii": aggregate.radii.tolist(),
         "masses": aggregate.masses.tolist()

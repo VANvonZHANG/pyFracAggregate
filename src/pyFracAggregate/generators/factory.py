@@ -32,10 +32,10 @@ def get_generator(
     """
     method = method.lower()
     if method == 'pca':
-        return PCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance)
+        return PCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'cca':
-        return CCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance)
+        return CCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'fracval':
-        return FracVALGenerator(n_particles, df, kf, particle_dist, overlap_tolerance)
+        return FracVALGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     else:
         raise ValueError(f"Unknown generation method: {method}")

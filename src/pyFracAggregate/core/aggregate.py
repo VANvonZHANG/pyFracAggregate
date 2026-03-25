@@ -6,11 +6,14 @@ class Aggregate:
     Uses pre-allocated contiguous memory via NumPy for high data locality 
     and access performance.
     """
-    def __init__(self, max_particles: int):
+    def __init__(self, max_particles: int, length_unit: str = 'nm', mass_unit: str = 'g', density: float = 1.0):
         """Initializes the Aggregate object.
 
         Args:
             max_particles (int): Maximum number of particles the cluster can hold.
+            length_unit (str, optional): Unit for length measurements (e.g., 'nm'). Defaults to 'nm'.
+            mass_unit (str, optional): Unit for mass measurements (e.g., 'g'). Defaults to 'g'.
+            density (float, optional): Density of particle material. Defaults to 1.0.
 
         Raises:
             ValueError: If max_particles <= 0.
@@ -21,6 +24,9 @@ class Aggregate:
         # Data structure: [x, y, z, radius, mass] with pre-allocated memory
         self._data = np.zeros((max_particles, 5), dtype=np.float64)
         self._current_size = 0  
+        self.length_unit = length_unit
+        self.mass_unit = mass_unit
+        self.density = density
 
     @property
     def positions(self) -> np.ndarray:

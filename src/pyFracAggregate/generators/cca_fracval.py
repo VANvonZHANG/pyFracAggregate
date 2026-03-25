@@ -16,14 +16,11 @@ class FracVALGenerator(BaseGenerator):
     def generate(self) -> Aggregate:
         if self.n_particles <= 8:
             pca_gen = PCAFilippovGenerator(
-                self.n_particles, self.df, self.kf, self.particle_dist, self.overlap_tolerance
+                self.n_particles, self.df, self.kf, self.particle_dist, self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
             )
             return pca_gen.generate()
             
         radii = self.particle_dist.sample(self.n_particles)
-        # Actual FracVAL might consider different geometric variances; 
-        # we assume unit density here.
-        masses = (4.0 / 3.0) * np.pi * (radii ** 3)
         
         # 1. Pre-allocate particles to sub-clusters (approx. 0.1 N, or fixed at 5 for small N).
         # According to Moran 2019: N in [50, 500], N_sub = 0.1N; N < 50, N_sub = 5.
@@ -47,7 +44,9 @@ class FracVALGenerator(BaseGenerator):
                 def sample(self, n):
                     return self.r
                     
-            local_pca = PCAFilippovGenerator(curr_size, self.df, self.kf, LocalDist(radii[idx:idx+curr_size]), self.overlap_tolerance)
+            local_pca = PCAFilippovGenerator(
+                curr_size, self.df, self.kf, LocalDist(radii[idx:idx+curr_size]), self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
+            )
             sub_agg = local_pca.generate()
             cluster_list.append(sub_agg)
             idx += curr_size
@@ -136,7 +135,7 @@ class FracVALGenerator(BaseGenerator):
                 best_candidate = candidate_pos2.copy()
                 
             if current_min_gap <= tolerance:
-                merged = Aggregate(N)
+                merged = Aggregate(N, self.length_unit, self.mass_unit, self.density)
                 for i in range(N1):
                     merged.add_particle(pos1[i,0], pos1[i,1], pos1[i,2], agg1.radii[i], agg1.masses[i])
                 for j in range(N2):
@@ -149,7 +148,7 @@ class FracVALGenerator(BaseGenerator):
         if best_candidate is None:
             best_candidate = candidate_pos2
             
-        merged = Aggregate(N)
+        merged = Aggregate(N, self.length_unit, self.mass_unit, self.density)
         for i in range(N1):
             merged.add_particle(pos1[i,0], pos1[i,1], pos1[i,2], agg1.radii[i], agg1.masses[i])
         for j in range(N2):

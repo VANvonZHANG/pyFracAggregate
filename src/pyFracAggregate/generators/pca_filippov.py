@@ -9,11 +9,11 @@ class PCAFilippovGenerator(BaseGenerator):
     increasing the tolerance.
     """
     def generate(self) -> Aggregate:
-        agg = Aggregate(self.n_particles)
+        agg = Aggregate(self.n_particles, self.length_unit, self.mass_unit, self.density)
         radii = self.particle_dist.sample(self.n_particles)
         
-        # Assume density is 1; mass is proportional to volume.
-        masses = (4.0 / 3.0) * np.pi * (radii ** 3)
+        # Calculate mass based on density and volume.
+        masses = self.density * (4.0 / 3.0) * np.pi * (radii ** 3)
         
         # Add the first particle at the origin
         agg.add_particle(0.0, 0.0, 0.0, radii[0], masses[0])
