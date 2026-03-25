@@ -75,3 +75,133 @@ def pair_correlation_function(
     c_r = np.nan_to_num(c_r, posinf=0.0)
     
     return r_centers, c_r
+
+def estimate_fractal_dimension(
+    r_centers: np.ndarray, 
+    c_r: np.ndarray, 
+    r_min: float = None, 
+    r_max: float = None
+) -> tuple[float, float, dict]:
+    """Estimates the fractal dimension Df from the pair correlation function C(r).
+
+    Performs log-log linear regression on the fractal regime (a < r < Rg).
+    Df is calculated as: Df = slope + 3.
+
+    Args:
+        r_centers (np.ndarray): Bin center distances.
+        c_r (np.ndarray): Correlation function values.
+        r_min (float, optional): Lower bound for regression.
+        r_max (float, optional): Upper bound for regression.
+
+    Returns:
+        tuple[float, float, dict]: (Df, R_squared, fit_results)
+            - Df: Estimated fractal dimension.
+            - R_squared: Coefficient of determination.
+            - fit_results: Dictionary containing 'slope', 'intercept', 'x_fit', 'y_fit'.
+    """
+    # Filter valid data (C(r) > 0 for log)
+    mask = c_r > 0
+    if r_min is not None:
+        mask &= (r_centers >= r_min)
+    if r_max is not None:
+        mask &= (r_centers <= r_max)
+    
+    x = r_centers[mask]
+    y = c_r[mask]
+    
+    if len(x) < 2:
+        return 0.0, 0.0, {}
+
+    log_x = np.log10(x)
+    log_y = np.log10(y)
+    
+    # Linear regression: log10(C(r)) = slope * log10(r) + intercept
+    slope, intercept = np.polyfit(log_x, log_y, 1)
+    
+    # Calculate R-squared
+    y_pred = slope * log_x + intercept
+    ss_res = np.sum((log_y - y_pred) ** 2)
+    ss_tot = np.sum((log_y - np.mean(log_y)) ** 2)
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+    
+    df = slope + 3.0
+    
+    fit_results = {
+        'slope': slope,
+        'intercept': intercept,
+        'r_min': np.min(x),
+        'r_max': np.max(x),
+        'x_fit': x,
+        'y_fit': 10 ** y_pred
+    }
+    
+    return df, r_squared, fit_results
+
+def plot_pair_correlation(
+    aggregate: Aggregate, 
+    bins: int = 50, 
+    show_fit: bool = True, 
+    reference_df: float = None, 
+    save_path: str = None
+) -> None:
+    """Plots the pair correlation function and optionally its fractal fit.
+
+    Args:
+        aggregate (Aggregate): Cluster object.
+        bins (int): Number of bins for PCF.
+        show_fit (bool): Whether to show the fractal dimension fit.
+        reference_df (float, optional): Reference Df to show in plot.
+        save_path (str, optional): Path to save the figure.
+    """
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("Error: matplotlib is required for plotting. Install it with 'pip install matplotlib'.")
+        return
+
+    from pyFracAggregate.analysis.morphology import radius_of_gyration
+    
+    r_centers, c_r = pair_correlation_function(aggregate, bins=bins)
+    
+    if len(r_centers) == 0:
+        print("Warning: Aggregate has too few particles for correlation analysis.")
+        return
+
+    plt.figure(figsize=(8, 6))
+    plt.loglog(r_centers, c_r, 'o', label='Data', markersize=4, alpha=0.7)
+    
+    if show_fit:
+        # Use r_min = mean radius, r_max = Rg as default bounds for fractal regime
+        r_min = np.mean(aggregate.radii)
+        r_max = radius_of_gyration(aggregate)
+        
+        df, r2, fit = estimate_fractal_dimension(r_centers, c_r, r_min=r_min, r_max=r_max)
+        
+        if fit:
+            plt.loglog(fit['x_fit'], fit['y_fit'], 'r-', linewidth=2, 
+                       label=f'Fit: $D_f$={df:.2f}, $R^2$={r2:.3f}')
+            
+            # Draw vertical lines for fitting range
+            plt.axvline(r_min, color='gray', linestyle='--', alpha=0.5, label='Min Fit Bound')
+            plt.axvline(r_max, color='gray', linestyle=':', alpha=0.5, label='Max Fit Bound ($R_g$)')
+
+    if reference_df is not None:
+        # Show a reference slope (slope = reference_df - 3)
+        mid_idx = len(r_centers) // 2
+        ref_x = r_centers
+        # Arbitrary intercept to place it near the data
+        ref_intercept = np.log10(c_r[mid_idx]) - (reference_df - 3.0) * np.log10(r_centers[mid_idx])
+        ref_y = 10 ** ((reference_df - 3.0) * np.log10(ref_x) + ref_intercept)
+        plt.loglog(ref_x, ref_y, 'g--', alpha=0.5, label=f'Ref: $D_f$={reference_df}')
+
+    plt.xlabel(f'Distance $r$ [{aggregate.length_unit}]')
+    plt.ylabel('Correlation function $C(r)$')
+    plt.title('Pair Correlation Function Analysis')
+    plt.grid(True, which="both", ls="-", alpha=0.2)
+    plt.legend()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
+    else:
+        plt.show()

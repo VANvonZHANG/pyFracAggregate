@@ -1,8 +1,13 @@
+import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.generators.factory import get_generator
 from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution
 from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
-from pyFracAggregate.analysis.correlation import pair_correlation_function
+from pyFracAggregate.analysis.correlation import (
+    pair_correlation_function, 
+    estimate_fractal_dimension, 
+    plot_pair_correlation
+)
 from pyFracAggregate.io.mesh import export_glb
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_to_json
@@ -52,10 +57,18 @@ def analyze(aggregate: Aggregate):
     """
     Compute core morphological properties.
     """
+    rg = radius_of_gyration(aggregate)
+    r_centers, c_r = pair_correlation_function(aggregate)
+    df_est, r2, _ = estimate_fractal_dimension(r_centers, c_r, 
+                                               r_min=np.mean(aggregate.radii), 
+                                               r_max=rg)
+    
     return {
-        "Rg": radius_of_gyration(aggregate),
+        "Rg": rg,
         "CoM": center_of_mass(aggregate),
-        "N": aggregate.current_size
+        "N": aggregate.current_size,
+        "Df_estimated": df_est,
+        "R2": r2
     }
 
 __all__ = [
@@ -67,6 +80,8 @@ __all__ = [
     "radius_of_gyration",
     "center_of_mass",
     "pair_correlation_function",
+    "estimate_fractal_dimension",
+    "plot_pair_correlation",
     "export_glb",
     "export_vtm",
     "export_vtk",
