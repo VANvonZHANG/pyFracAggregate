@@ -8,7 +8,7 @@ from pyFracAggregate.analysis.correlation import (
     estimate_fractal_dimension, 
     plot_pair_correlation
 )
-from pyFracAggregate.io.mesh import export_glb
+from pyFracAggregate.io.mesh import export_glb, export_3mf
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_to_json
 
@@ -83,6 +83,7 @@ __all__ = [
     "estimate_fractal_dimension",
     "plot_pair_correlation",
     "export_glb",
+    "export_3mf",
     "export_vtm",
     "export_vtk",
     "export_to_json"
