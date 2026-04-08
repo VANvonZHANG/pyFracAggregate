@@ -31,3 +31,8 @@ dev = [
     "ruff",
     "mypy"
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "benchmark: performance benchmark tests (deselect with '-m \"not benchmark\"')",
+]
