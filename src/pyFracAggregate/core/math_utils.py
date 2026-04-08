@@ -114,3 +114,30 @@ def sphere_sphere_intersection(
 
     circle_center = c1 + (a / d) * d_vec
     return circle_center, h
+
+
+def random_point_on_circle(
+    center: np.ndarray,
+    radius: float,
+    normal: np.ndarray,
+) -> np.ndarray:
+    """Sample a random point on a circle in 3D.
+
+    Args:
+        center: Circle center, shape (3,).
+        radius: Circle radius.
+        normal: Normal vector to the circle plane, shape (3,).
+
+    Returns:
+        A single point on the circle, shape (3,).
+    """
+    normal = normal / np.linalg.norm(normal)
+    temp = np.array([1.0, 0.0, 0.0])
+    if np.abs(np.dot(normal, temp)) > 0.9:
+        temp = np.array([0.0, 1.0, 0.0])
+    u = np.cross(normal, temp)
+    u /= np.linalg.norm(u)
+    v = np.cross(normal, u)
+
+    theta = np.random.uniform(0, 2 * np.pi)
+    return center + radius * (np.cos(theta) * u + np.sin(theta) * v)
