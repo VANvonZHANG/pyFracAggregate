@@ -57,3 +57,60 @@ def rotate_points_quaternion(points: np.ndarray, quaternion: Tuple[float, float,
         w, x, y, z = quaternion
         rot = R.from_quat([x, y, z, w])
         return rot.apply(points)
+
+def euler_rodrigues_rotation(points: np.ndarray, axis: np.ndarray, angle: float) -> np.ndarray:
+    """Rotate points around an arbitrary axis by a given angle using Euler-Rodrigues formula.
+
+    Args:
+        points (np.ndarray): Shape (N, 3) points to rotate.
+        axis (np.ndarray): Rotation axis (3,), must be non-zero.
+        angle (float): Rotation angle in radians.
+
+    Returns:
+        np.ndarray: Rotated points of shape (N, 3).
+    """
+    if points.size == 0:
+        return points.copy()
+    axis = axis / np.linalg.norm(axis)
+    K = np.array([
+        [0, -axis[2], axis[1]],
+        [axis[2], 0, -axis[0]],
+        [-axis[1], axis[0], 0]
+    ])
+    R = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
+    return points @ R.T
+
+
+def sphere_sphere_intersection(
+    c1: np.ndarray, r1: float, c2: np.ndarray, r2: float
+) -> tuple[np.ndarray, float] | None:
+    """Compute the intersection circle of two spheres.
+
+    Args:
+        c1: Center of sphere 1, shape (3,).
+        r1: Radius of sphere 1.
+        c2: Center of sphere 2, shape (3,).
+        r2: Radius of sphere 2.
+
+    Returns:
+        (circle_center, circle_radius) if intersection exists, None otherwise.
+        For tangent spheres, circle_radius is 0.0.
+    """
+    d_vec = c2 - c1
+    d = np.linalg.norm(d_vec)
+
+    if d > r1 + r2 + 1e-12:
+        return None
+    if d < abs(r1 - r2) - 1e-12:
+        return None
+    if d < 1e-12:
+        return None
+
+    a = (r1**2 - r2**2 + d**2) / (2 * d)
+    h_sq = r1**2 - a**2
+    if h_sq < -1e-12:
+        return None
+    h = np.sqrt(max(h_sq, 0.0))
+
+    circle_center = c1 + (a / d) * d_vec
+    return circle_center, h
