@@ -122,29 +122,45 @@ def build_particle_list_pca(
 def solve_pca_placement(
     center: np.ndarray,
     L: float,
-    ref_pos: np.ndarray,
+    candidate_indices: List[int],
     r_new: float,
     radii: np.ndarray,
     positions: np.ndarray,
     overlap_tolerance: float = 1e-5,
-    ref_idx: Optional[int] = None,
     max_ref_changes: int = 5,
     points_per_ref: int = 8,
 ) -> Optional[np.ndarray]:
     """Algebraic PCA placement using FLAGE method.
 
-    Picks a reference particle, computes exact touching circle, samples points,
-    checks for overlaps. If all points overlap, rotates around reference axis
-    (quaternion) before trying a new reference.
-    """
-    r_ref = radii[ref_idx] if ref_idx is not None else radii[0]
+    Iterates over candidate reference particles, computes exact touching circle
+    for each, and returns the first non-overlapping position found.
 
-    for _ in range(max_ref_changes):
+    Args:
+        center: Cluster geometric center.
+        L: Required distance from center to new particle.
+        candidate_indices: List of particle indices to try as references.
+        r_new: New particle radius.
+        radii: All existing particle radii.
+        positions: All existing particle positions.
+        overlap_tolerance: Allowed overlap.
+        max_ref_changes: Max number of reference particles to try.
+        points_per_ref: Points to sample on each intersection circle.
+
+    Returns:
+        Valid placement position, or None if all references fail.
+    """
+    max_refs = min(max_ref_changes, len(candidate_indices))
+
+    for i in range(max_refs):
+        ref_idx = candidate_indices[i]
+        ref_pos = positions[ref_idx]
+        r_ref = radii[ref_idx]
+
         candidates = find_exact_touching_points_pca(
             center, L, ref_pos, r_new, r_ref, num_points=points_per_ref
         )
         if len(candidates) == 0:
-            return None
+            continue
 
         valid = filter_overlapping_candidates(
             candidates, positions, radii, r_new, overlap_tolerance

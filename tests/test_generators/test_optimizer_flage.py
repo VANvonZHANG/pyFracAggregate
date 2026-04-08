@@ -79,7 +79,7 @@ def test_solve_pca_placement_finds_valid():
     r_new = 1.0
     ref_radii = np.array([1.0, 1.0, 1.0])
     positions = np.array([[3.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, -5.0, 0.0]])
-    result = solve_pca_placement(center, L, ref_pos, r_new, ref_radii, positions, 1e-5, ref_idx=0)
+    result = solve_pca_placement(center, L, [0], r_new, ref_radii, positions, 1e-5)
     assert result is not None
     pt = result
     assert np.isclose(np.linalg.norm(pt - center), L, atol=1e-4)
@@ -90,11 +90,9 @@ def test_solve_pca_placement_returns_none_when_blocked():
     """If all candidates overlap, should return None."""
     center = np.array([0.0, 0.0, 0.0])
     L = 3.0
-    ref_pos = np.array([2.0, 0.0, 0.0])
     r_new = 1.0
     ref_radii = np.array([1.0, 1.5])
-    # Surround the reference with overlapping spheres
     positions = np.array([[2.0, 0.0, 0.0], [2.0, 0.0, 0.5]])
-    result = solve_pca_placement(center, L, ref_pos, r_new, ref_radii, positions, 1e-5, ref_idx=0)
+    result = solve_pca_placement(center, L, [0], r_new, ref_radii, positions, 1e-5)
     # May or may not find a valid position depending on geometry, but must not crash
     assert result is None or isinstance(result, np.ndarray)

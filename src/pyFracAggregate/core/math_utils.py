@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional
 
 try:
     import mathutils
@@ -83,7 +83,7 @@ def euler_rodrigues_rotation(points: np.ndarray, axis: np.ndarray, angle: float)
 
 def sphere_sphere_intersection(
     c1: np.ndarray, r1: float, c2: np.ndarray, r2: float
-) -> tuple[np.ndarray, float] | None:
+) -> Optional[Tuple[np.ndarray, float]]:
     """Compute the intersection circle of two spheres.
 
     Args:

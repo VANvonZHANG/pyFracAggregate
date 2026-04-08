@@ -190,6 +190,13 @@ class FracVALGenerator(BaseGenerator):
                 if not resolved:
                     continue
 
+            # Verify CM2 constraint: actual CM2 distance should be ~Gamma
+            m2_total = np.sum(agg2.masses)
+            actual_com2 = np.average(pos2_final, weights=agg2.masses, axis=0) if m2_total > 0 else np.mean(pos2_final, axis=0)
+            com2_error = abs(np.linalg.norm(actual_com2) - Gamma)
+            if com2_error > 0.1 * Gamma:
+                continue
+
             return self._build_merged(pos1, agg1, pos2_final, agg2, N)
 
         # All pairs exhausted, fall back to random

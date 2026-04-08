@@ -2,6 +2,7 @@ import numpy as np
 from typing import List
 
 from pyFracAggregate.core.aggregate import Aggregate
+from pyFracAggregate.core.math_utils import euler_rodrigues_rotation
 from pyFracAggregate.generators.base import BaseGenerator
 
 
@@ -87,7 +88,11 @@ class ThouyJullienGenerator(BaseGenerator):
 
     def _merge_min_gamma(self, c1: dict, c2: dict, a: float) -> dict:
         """Merge two clusters by finding a configuration that minimizes
-        deviation from the target Gamma^2."""
+        deviation from the target Gamma^2.
+
+        Works in units of `a` (mean particle radius) so that the +1
+        correction in Eq 12 is dimensionally consistent.
+        """
         pos1 = c1['positions']
         pos2 = c2['positions']
         r1 = c1['radii']
@@ -102,29 +107,26 @@ class ThouyJullienGenerator(BaseGenerator):
         p1c = pos1 - com1
         p2c = pos2 - com2
 
-        # Rg^2 of each cluster (mass-weighted, without intrinsic term)
+        # Normalize to units of `a` for dimensionally consistent Gamma formula
+        p1n = p1c / a
+        p2n = p2c / a
+        r1n = r1 / a
+        r2n = r2 / a
+
+        # Rg^2 of each cluster in units of a (mass-weighted, without intrinsic term)
         M1 = np.sum(m1)
         M2 = np.sum(m2)
-        Rg1_sq = np.sum(m1[:, None] * (p1c ** 2)) / M1 if M1 > 0 else 0.0
-        Rg2_sq = np.sum(m2[:, None] * (p2c ** 2)) / M2 if M2 > 0 else 0.0
+        Rg1_sq = np.sum(m1[:, None] * (p1n ** 2)) / M1 if M1 > 0 else 0.0
+        Rg2_sq = np.sum(m2[:, None] * (p2n ** 2)) / M2 if M2 > 0 else 0.0
         Rg_avg_sq = (Rg1_sq + Rg2_sq) / 2.0
 
         # k^2 from Thouy & Jullien Eq 11
         k_sq = 4.0 * (4.0 ** (1.0 / self.df) - 1.0)
 
-        # Target Gamma^2 from Thouy & Jullien Eq 12
-        # The "+1" correction ensures exact results at the dimer stage
+        # Target Gamma^2 from Thouy & Jullien Eq 12 (dimensionless in units of a)
         Gamma_target_sq = k_sq * Rg_avg_sq + 1.0
+        Gamma_target = np.sqrt(max(Gamma_target_sq, 0.1))
 
-        # Find surface particles on each cluster
-        surface1 = self._find_surface(p1c, r1, a)
-        surface2 = self._find_surface(p2c, r2, a)
-
-        if not surface1 or not surface2:
-            return self._merge_fallback(c1, c2, a)
-
-        # Try random orientations and positions, pick the one minimizing
-        # |Gamma_actual^2 - Gamma_target^2|
         best_config = None
         best_delta = float('inf')
 
@@ -135,23 +137,22 @@ class ThouyJullienGenerator(BaseGenerator):
             u = np.random.normal(size=3)
             u /= np.linalg.norm(u)
 
-            # Scale the target Gamma to physical units (in units of a)
-            Gamma_target = np.sqrt(max(Gamma_target_sq, 0.1)) * a
+            # Random rotation of cluster 2 (Thouy & Jullien requires trying
+            # different relative orientations)
+            rand_axis = _LATTICE_DIRS[np.random.randint(len(_LATTICE_DIRS))]
+            rand_angle = np.random.uniform(0, 2 * np.pi)
+            p2n_rot = euler_rodrigues_rotation(p2n, rand_axis, rand_angle)
 
-            # Place c2's center at approximate distance Gamma from origin
-            # with some randomness to explore configurations
-            scale = Gamma_target * np.random.uniform(0.7, 1.3)
-            offset = u * scale
-            p2_trial = p2c + offset
+            # Place c2's center at distance Gamma from origin
+            offset = u * Gamma_target
+            p2n_trial = p2n_rot + offset
 
-            # Fast overlap check with sampled particles
+            # Fast overlap check using surface particles
             ok = True
-            sample1 = surface1 if len(surface1) < N1 else list(range(min(N1, 20)))
-            sample2 = surface2 if len(surface2) < N2 else list(range(min(N2, 20)))
-            for ii in sample1:
-                for jj in sample2:
-                    d = np.linalg.norm(p1c[ii] - p2_trial[jj])
-                    if d < r1[ii] + r2[jj] - 1e-6:
+            for ii in range(min(N1, 20)):
+                for jj in range(min(N2, 20)):
+                    d = np.linalg.norm(p1n[ii] - p2n_trial[jj])
+                    if d < r1n[ii] + r2n[jj] - 1e-6:
                         ok = False
                         break
                 if not ok:
@@ -160,36 +161,40 @@ class ThouyJullienGenerator(BaseGenerator):
             if not ok:
                 continue
 
-            # Full overlap check using broadcasting
+            # Full overlap check
             dists = np.linalg.norm(
-                p1c[:, np.newaxis, :] - p2_trial[np.newaxis, :, :], axis=2
+                p1n[:, np.newaxis, :] - p2n_trial[np.newaxis, :, :], axis=2
             )
-            min_dists = r1[:, np.newaxis] + r2[np.newaxis, :]
+            min_dists = r1n[:, np.newaxis] + r2n[np.newaxis, :]
             if np.any(dists < min_dists - 1e-6):
                 continue
 
-            # Compute Gamma: distance between the two cluster centers
+            # Compute actual Gamma^2 (dimensionless)
             c2_center = (
-                np.average(p2_trial, weights=m2, axis=0)
+                np.average(p2n_trial, weights=m2, axis=0)
                 if M2 > 0
-                else np.mean(p2_trial, axis=0)
+                else np.mean(p2n_trial, axis=0)
             )
             Gamma_actual_sq = np.sum(c2_center ** 2)
-            delta = abs(Gamma_actual_sq - Gamma_target_sq * a * a)
+            delta = abs(Gamma_actual_sq - Gamma_target_sq)
 
             if delta < best_delta:
                 best_delta = delta
-                best_config = p2_trial.copy()
+                best_config = p2n_trial.copy()
 
                 # Early exit if very close to target
-                if delta < 0.01 * a * a:
+                if delta < 0.01:
                     break
 
         if best_config is None:
+            # Convert back to physical units for fallback
             return self._merge_fallback(c1, c2, a)
 
+        # Convert back to physical units
+        best_config_phys = best_config * a
+
         return {
-            'positions': np.vstack([p1c, best_config]),
+            'positions': np.vstack([p1c, best_config_phys]),
             'radii': np.concatenate([r1, r2]),
             'masses': np.concatenate([m1, m2]),
         }

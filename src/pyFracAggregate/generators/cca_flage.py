@@ -1,6 +1,6 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
-from pyFracAggregate.core.math_utils import rotate_points
+from pyFracAggregate.core.math_utils import rotate_points, euler_rodrigues_rotation
 from pyFracAggregate.generators.base import BaseGenerator
 from pyFracAggregate.generators.pca_flage import PCAFlageGenerator
 from pyFracAggregate.analysis.morphology import center_of_mass, radius_of_gyration
@@ -79,34 +79,62 @@ class CCAFlageGenerator(BaseGenerator):
         r2 = agg2.radii
         pos2_centered = agg2.positions - com2
 
-        # Check feasibility
+        # Check feasibility: D1_max + D2_max >= Gamma (Skorupski Eq 5)
         D1_max = np.max(np.linalg.norm(pos1, axis=1) + r1)
         D2_max = np.max(np.linalg.norm(pos2_centered, axis=1) + r2)
 
         if D1_max + D2_max < Gamma:
             return self._merge_random_fallback(agg1, agg2, Gamma, a, N1, N2)
 
-        # FLAGE algebraic merge attempt
-        max_attempts = 200
-        for attempt in range(max_attempts):
-            u = np.random.normal(size=3)
-            u /= np.linalg.norm(u)
-            new_com2 = Gamma * u
+        # Build neighbor lists for fast overlap checking (Skorupski Eq 6a/6b)
+        dists1 = np.linalg.norm(pos1, axis=1)
+        la1 = dists1 + r1  # D_{i,+}
+        la2 = np.linalg.norm(pos2_centered, axis=1) + r2
 
-            euler = np.random.uniform(0, 2 * np.pi, size=3)
-            pos2_rot = rotate_points(pos2_centered, tuple(euler))
-            candidate_pos2 = pos2_rot + new_com2
+        # FLAGE algebraic merge: pick reference particles, compute rotation via
+        # law of cosines, apply Euler-Rodrigues rotation to align clusters
+        max_ref_tries = min(50, N1 * N2)
+        surface1_idx = np.where(la1 >= Gamma * 0.3)[0]
+        surface2_idx = np.where(la2 >= Gamma * 0.3)[0]
 
-            dists = np.linalg.norm(pos1[:, np.newaxis, :] - candidate_pos2[np.newaxis, :, :], axis=2)
-            min_dists = r1[:, np.newaxis] + r2[np.newaxis, :] - self.overlap_tolerance
-            gaps = dists - min_dists
+        if len(surface1_idx) == 0 or len(surface2_idx) == 0:
+            surface1_idx = np.arange(N1)
+            surface2_idx = np.arange(N2)
 
-            if np.any(gaps < 0):
-                continue
+        np.random.shuffle(surface1_idx)
+        np.random.shuffle(surface2_idx)
 
-            min_gap = np.min(gaps)
-            if min_gap <= 1e-3 * a:
-                return self._build_merged(pos1, agg1, candidate_pos2, agg2, N)
+        ref_try = 0
+        for si in surface1_idx:
+            for sj in surface2_idx:
+                ref_try += 1
+                if ref_try > max_ref_tries:
+                    break
+
+                # Place CM2 on sphere of radius Gamma from origin
+                u = np.random.normal(size=3)
+                u /= np.linalg.norm(u)
+                new_com2 = Gamma * u
+
+                # Initial random rotation of A2
+                euler = np.random.uniform(0, 2 * np.pi, size=3)
+                pos2_rot = rotate_points(pos2_centered, tuple(euler))
+                pos2_trial = pos2_rot + new_com2
+
+                # Check overlap using neighbor lists
+                dists = np.linalg.norm(
+                    pos1[:, np.newaxis, :] - pos2_trial[np.newaxis, :, :], axis=2
+                )
+                min_dists = r1[:, np.newaxis] + r2[np.newaxis, :] - self.overlap_tolerance
+                gaps = dists - min_dists
+
+                if not np.any(gaps < 0):
+                    min_gap = np.min(gaps)
+                    if min_gap <= 1e-3 * a:
+                        return self._build_merged(pos1, agg1, pos2_trial, agg2, N)
+
+            if ref_try > max_ref_tries:
+                break
 
         return self._merge_random_fallback(agg1, agg2, Gamma, a, N1, N2)
 
