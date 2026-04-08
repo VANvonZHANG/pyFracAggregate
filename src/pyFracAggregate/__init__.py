@@ -31,7 +31,7 @@ def generate(
         n_particles (int): Target number of particles.
         df (float): Fractal dimension (typically 1.5 - 2.5).
         kf (float): Fractal prefactor (typically 1.0 - 2.0).
-        method (str): Algorithm to use ('pca', 'cca', 'fracval').
+        method (str): Algorithm to use ('pca', 'cca', 'fracval', 'flage_pca', 'flage_cca', 'tdcca').
         particle_dist: Particle radius distribution (defaults to Monodisperse(1.0)).
         overlap_tolerance (float): Allowed overlap between spheres.
         

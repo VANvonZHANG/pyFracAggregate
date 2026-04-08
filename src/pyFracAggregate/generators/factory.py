@@ -5,6 +5,7 @@ from pyFracAggregate.generators.cca_filippov import CCAFilippovGenerator
 from pyFracAggregate.generators.cca_fracval import FracVALGenerator
 from pyFracAggregate.generators.pca_flage import PCAFlageGenerator
 from pyFracAggregate.generators.cca_flage import CCAFlageGenerator
+from pyFracAggregate.generators.tdcca_thouy import ThouyJullienGenerator
 
 def get_generator(
     method: str,
@@ -18,7 +19,7 @@ def get_generator(
     """Gets the corresponding fractal cluster generator.
     
     Args:
-        method (str): Generation algorithm ('pca', 'cca', 'fracval').
+        method (str): Generation algorithm ('pca', 'cca', 'fracval', 'flage_pca', 'flage_cca', 'tdcca').
         n_particles (int): Number of particles.
         df (float): Fractal dimension.
         kf (float): Fractal prefactor.
@@ -43,5 +44,7 @@ def get_generator(
         return PCAFlageGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'flage_cca':
         return CCAFlageGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+    elif method == 'tdcca':
+        return ThouyJullienGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     else:
         raise ValueError(f"Unknown generation method: {method}")
