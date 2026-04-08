@@ -3,6 +3,7 @@ from pyFracAggregate.generators.base import BaseGenerator
 from pyFracAggregate.generators.pca_filippov import PCAFilippovGenerator
 from pyFracAggregate.generators.cca_filippov import CCAFilippovGenerator
 from pyFracAggregate.generators.cca_fracval import FracVALGenerator
+from pyFracAggregate.generators.pca_flage import PCAFlageGenerator
 
 def get_generator(
     method: str,
@@ -37,5 +38,7 @@ def get_generator(
         return CCAFilippovGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'fracval':
         return FracVALGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+    elif method == 'flage_pca':
+        return PCAFlageGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     else:
         raise ValueError(f"Unknown generation method: {method}")
