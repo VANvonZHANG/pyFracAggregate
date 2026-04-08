@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 def find_exact_touching_points_pca(
     center: np.ndarray,
@@ -100,5 +100,56 @@ def filter_overlapping_candidates(
         dists = np.linalg.norm(positions - cand, axis=1)
         if not np.any(dists < min_dists):
             valid_candidates.append(cand)
-            
+
     return np.array(valid_candidates)
+
+def build_particle_list_pca(
+    positions: np.ndarray,
+    radii: np.ndarray,
+    L: float,
+    a: float,
+) -> List[int]:
+    """Build list of particle indices that could intersect with the new sphere.
+
+    From Skorupski 2014: particles within distance [L - 2*a, L + 12*a] of center.
+    """
+    dists = np.linalg.norm(positions, axis=1)
+    lower = max(L - 2.0 * a - a, 0.0)
+    upper = L + 12.0 * a + a
+    mask = (dists >= lower) & (dists <= upper)
+    return list(np.where(mask)[0])
+
+def solve_pca_placement(
+    center: np.ndarray,
+    L: float,
+    ref_pos: np.ndarray,
+    r_new: float,
+    radii: np.ndarray,
+    positions: np.ndarray,
+    overlap_tolerance: float = 1e-5,
+    ref_idx: Optional[int] = None,
+    max_ref_changes: int = 5,
+    points_per_ref: int = 8,
+) -> Optional[np.ndarray]:
+    """Algebraic PCA placement using FLAGE method.
+
+    Picks a reference particle, computes exact touching circle, samples points,
+    checks for overlaps. If all points overlap, rotates around reference axis
+    (quaternion) before trying a new reference.
+    """
+    r_ref = radii[ref_idx] if ref_idx is not None else radii[0]
+
+    for _ in range(max_ref_changes):
+        candidates = find_exact_touching_points_pca(
+            center, L, ref_pos, r_new, r_ref, num_points=points_per_ref
+        )
+        if len(candidates) == 0:
+            return None
+
+        valid = filter_overlapping_candidates(
+            candidates, positions, radii, r_new, overlap_tolerance
+        )
+        if len(valid) > 0:
+            return valid[np.random.randint(len(valid))]
+
+    return None
