@@ -71,8 +71,11 @@ def get_placement(name: str) -> PlacementStrategy:
         ValueError: If name is not recognized.
     """
     from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
+    from pyFracAggregate.generators.placement.random_ import RandomPlacement
 
     name = name.lower()
     if name == 'algebraic':
         return AlgebraicPlacement()
+    elif name == 'random':
+        return RandomPlacement()
     raise ValueError(f"Unknown placement strategy: {name}")

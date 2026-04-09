@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from pyFracAggregate.generators.placement import get_placement, PlacementStrategy
 from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
+from pyFracAggregate.generators.placement.random_ import RandomPlacement
 
 
 def test_get_placement_algebraic():
@@ -11,9 +12,8 @@ def test_get_placement_algebraic():
 
 
 def test_get_placement_random():
-    """Will be wired in Task 3."""
-    with pytest.raises(ValueError, match="Unknown placement strategy"):
-        get_placement('random')
+    s = get_placement('random')
+    assert isinstance(s, PlacementStrategy)
 
 
 def test_get_placement_invalid_raises():
@@ -75,6 +75,65 @@ def test_algebraic_placement_merge_clusters_basic():
     from pyFracAggregate.core.aggregate import Aggregate
 
     strategy = AlgebraicPlacement()
+    agg1 = Aggregate(3, density=1.0)
+    agg2 = Aggregate(3, density=1.0)
+    mass = 1.0 * (4.0 / 3.0) * np.pi * 1.0**3
+
+    agg1.add_particle(0.0, 0.0, 0.0, 1.0, mass)
+    agg1.add_particle(2.0, 0.0, 0.0, 1.0, mass)
+    agg1.add_particle(0.0, 2.0, 0.0, 1.0, mass)
+
+    agg2.add_particle(0.0, 0.0, 0.0, 1.0, mass)
+    agg2.add_particle(2.0, 0.0, 0.0, 1.0, mass)
+    agg2.add_particle(0.0, 2.0, 0.0, 1.0, mass)
+
+    pos1 = agg1.positions
+    r1 = agg1.radii
+    pos2_centered = agg2.positions
+    r2 = agg2.radii
+
+    result = strategy.merge_clusters(pos1, r1, agg1, pos2_centered, r2, agg2, 5.0, 1.0)
+    assert result is not None
+    assert result.shape == (3, 3)
+
+
+# --- RandomPlacement tests (Task 3) ---
+
+
+def test_random_placement_is_strategy():
+    assert issubclass(RandomPlacement, PlacementStrategy)
+
+
+def test_random_placement_place_particle_basic():
+    """RandomPlacement.place_particle should find valid positions via Monte Carlo."""
+    from pyFracAggregate.core.aggregate import Aggregate
+
+    strategy = RandomPlacement()
+    agg = Aggregate(10, density=1.0)
+    mass = agg.density * (4.0 / 3.0) * np.pi * 1.0**3
+
+    # Build a small cluster so Monte Carlo can find touching placements
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, mass)
+    agg.add_particle(2.0, 0.0, 0.0, 1.0, mass)
+    agg.add_particle(0.0, 2.0, 0.0, 1.0, mass)
+
+    geom_center = np.mean(agg.positions, axis=0)
+    rg = np.sqrt(np.mean(np.sum((agg.positions - geom_center) ** 2, axis=1)))
+    L = 2.0 * rg  # Gamma sphere at ~2x Rg
+    result = strategy.place_particle(agg, 1.0, mass, geom_center, L, 1.0)
+    assert result is not None
+    assert len(result) == 3
+    pos = np.array(result)
+    # No overlap with existing particles
+    dists = np.linalg.norm(agg.positions - pos[np.newaxis, :], axis=1)
+    assert np.all(dists >= agg.radii + 1.0 - 0.05)
+
+
+def test_random_placement_merge_clusters_basic():
+    """RandomPlacement.merge_clusters should produce valid merge results."""
+    from pyFracAggregate.core.aggregate import Aggregate
+
+    strategy = RandomPlacement()
     agg1 = Aggregate(3, density=1.0)
     agg2 = Aggregate(3, density=1.0)
     mass = 1.0 * (4.0 / 3.0) * np.pi * 1.0**3
