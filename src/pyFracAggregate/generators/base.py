@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.core.distributions import ParticleDistribution
+from pyFracAggregate.generators.placement.base import PlacementStrategy, get_placement
+
 
 class BaseGenerator(ABC):
     """Abstract base class for generators."""
@@ -13,10 +15,11 @@ class BaseGenerator(ABC):
         overlap_tolerance: float = 0.0,
         length_unit: str = 'nm',
         mass_unit: str = 'g',
-        density: float = 1.0
+        density: float = 1.0,
+        placement: str = 'algebraic',
     ):
         """Initializes the generator.
-        
+
         Args:
             n_particles (int): Target number of particles.
             df (float): Fractal dimension.
@@ -26,6 +29,7 @@ class BaseGenerator(ABC):
             length_unit (str, optional): Unit for length. Defaults to 'nm'.
             mass_unit (str, optional): Unit for mass. Defaults to 'g'.
             density (float, optional): Density of particle material. Defaults to 1.0.
+            placement (str, optional): Placement strategy name ('algebraic' or 'random'). Defaults to 'algebraic'.
         """
         self.n_particles = n_particles
         self.df = df
@@ -35,6 +39,9 @@ class BaseGenerator(ABC):
         self.length_unit = length_unit
         self.mass_unit = mass_unit
         self.density = density
+        self.placement: PlacementStrategy = get_placement(placement)
+        self.placement.overlap_tolerance = overlap_tolerance
+        self._placement_name = placement
 
     @abstractmethod
     def generate(self) -> Aggregate:

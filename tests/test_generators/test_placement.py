@@ -154,3 +154,40 @@ def test_random_placement_merge_clusters_basic():
     result = strategy.merge_clusters(pos1, r1, agg1, pos2_centered, r2, agg2, 5.0, 1.0)
     assert result is not None
     assert result.shape == (3, 3)
+
+
+# --- BaseGenerator placement tests (Task 4) ---
+
+
+def _make_concrete_generator(**kwargs):
+    """Helper: create a minimal concrete subclass of BaseGenerator for testing."""
+    from pyFracAggregate.generators.base import BaseGenerator
+
+    class ConcreteGenerator(BaseGenerator):
+        def generate(self):
+            raise NotImplementedError
+
+    return ConcreteGenerator(**kwargs)
+
+
+def test_base_generator_default_placement():
+    """BaseGenerator should default to algebraic placement."""
+    from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
+    import pyFracAggregate as pfa
+    gen = _make_concrete_generator(n_particles=10, df=1.8, kf=1.3, particle_dist=pfa.Monodisperse(1.0))
+    assert isinstance(gen.placement, AlgebraicPlacement)
+
+
+def test_base_generator_random_placement():
+    """BaseGenerator should accept placement='random'."""
+    from pyFracAggregate.generators.placement.random_ import RandomPlacement
+    import pyFracAggregate as pfa
+    gen = _make_concrete_generator(n_particles=10, df=1.8, kf=1.3, particle_dist=pfa.Monodisperse(1.0), placement='random')
+    assert isinstance(gen.placement, RandomPlacement)
+
+
+def test_base_generator_placement_gets_overlap_tolerance():
+    """placement.overlap_tolerance should match generator's overlap_tolerance."""
+    import pyFracAggregate as pfa
+    gen = _make_concrete_generator(n_particles=10, df=1.8, kf=1.3, particle_dist=pfa.Monodisperse(1.0), overlap_tolerance=0.5)
+    assert gen.placement.overlap_tolerance == 0.5
