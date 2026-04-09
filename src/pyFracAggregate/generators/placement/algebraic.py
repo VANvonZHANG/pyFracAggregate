@@ -6,6 +6,10 @@ from pyFracAggregate.generators.optimizer_flage import (
     find_exact_touching_points_pca,
     filter_overlapping_candidates,
 )
+from pyFracAggregate.generators.placement._helpers import (
+    random_monte_carlo_place,
+    random_monte_carlo_merge,
+)
 from pyFracAggregate.generators.placement.base import PlacementStrategy
 
 
@@ -19,7 +23,15 @@ class AlgebraicPlacement(PlacementStrategy):
     def __init__(self, overlap_tolerance: float = 0.0):
         self.overlap_tolerance = overlap_tolerance
 
-    def place_particle(self, agg, candidate_radius, candidate_mass, geom_center, L, mean_radius):
+    def place_particle(
+        self,
+        agg: Aggregate,
+        candidate_radius: float,
+        candidate_mass: float,
+        geom_center: np.ndarray,
+        L: float,
+        mean_radius: float,
+    ) -> tuple | None:
         """Try algebraic placement, then fall back to random sampling."""
         candidate_list = build_particle_list_pca(agg.positions, agg.radii, L, mean_radius)
 
@@ -45,39 +57,21 @@ class AlgebraicPlacement(PlacementStrategy):
                     return (pt[0], pt[1], pt[2])
 
         # Fallback: random Monte Carlo
-        return self._random_place_particle(agg, candidate_radius, geom_center, L, mean_radius)
+        return random_monte_carlo_place(
+            agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
+        )
 
-    def _random_place_particle(self, agg, r_N, geom_center, L, a):
-        max_attempts = 10000
-        tolerance = 1e-3 * a
-
-        for attempt in range(max_attempts):
-            u = np.random.normal(size=3)
-            norm_u = np.linalg.norm(u)
-            if norm_u < 1e-8:
-                continue
-            u /= norm_u
-
-            candidate_pos = geom_center + L * u
-            dists = np.linalg.norm(agg.positions - candidate_pos, axis=1)
-            min_allowed = agg.radii + r_N - self.overlap_tolerance
-
-            if np.any(dists < min_allowed):
-                continue
-            if np.any(dists <= min_allowed + tolerance):
-                return (candidate_pos[0], candidate_pos[1], candidate_pos[2])
-            if attempt > 0 and attempt % 1000 == 0:
-                tolerance += 0.05 * a
-
-        # Extreme fallback
-        idx = np.random.randint(agg.current_size)
-        ref_pos = agg.positions[idx]
-        u = np.random.normal(size=3)
-        u /= np.linalg.norm(u)
-        fallback_pos = ref_pos + (agg.radii[idx] + r_N - self.overlap_tolerance) * u
-        return (fallback_pos[0], fallback_pos[1], fallback_pos[2])
-
-    def merge_clusters(self, pos1, r1, agg1, pos2_centered, r2, agg2, Gamma, mean_radius):
+    def merge_clusters(
+        self,
+        pos1: np.ndarray,
+        r1: np.ndarray,
+        agg1: Aggregate,
+        pos2_centered: np.ndarray,
+        r2: np.ndarray,
+        agg2: Aggregate,
+        Gamma: float,
+        mean_radius: float,
+    ) -> np.ndarray | None:
         """FLAGE-style merge with surface particle filtering + random fallback."""
         N1 = agg1.current_size
         N2 = agg2.current_size
@@ -86,7 +80,9 @@ class AlgebraicPlacement(PlacementStrategy):
         D2_max = np.max(np.linalg.norm(pos2_centered, axis=1) + r2)
 
         if D1_max + D2_max < Gamma:
-            return self._random_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius)
+            return random_monte_carlo_merge(
+                pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+            )
 
         dists1 = np.linalg.norm(pos1, axis=1)
         la1 = dists1 + r1
@@ -134,35 +130,6 @@ class AlgebraicPlacement(PlacementStrategy):
             if ref_try > max_ref_tries:
                 break
 
-        return self._random_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius)
-
-    def _random_merge(self, pos1, r1, pos2_centered, r2, Gamma, mean_radius):
-        max_attempts = 20000
-        tol = 1e-3 * mean_radius
-        candidate_pos2 = None
-
-        for attempt in range(max_attempts):
-            u = np.random.normal(size=3)
-            u /= np.linalg.norm(u)
-            new_com2 = Gamma * u
-
-            euler_angles = np.random.uniform(0, 2 * np.pi, size=3)
-            pos2_rotated = rotate_points(pos2_centered, tuple(euler_angles))
-            candidate_pos2 = pos2_rotated + new_com2
-
-            dists = np.linalg.norm(
-                pos1[:, np.newaxis, :] - candidate_pos2[np.newaxis, :, :], axis=2
-            )
-            min_dists = r1[:, np.newaxis] + r2[np.newaxis, :] - self.overlap_tolerance
-            gaps = dists - min_dists
-
-            if np.any(gaps < 0):
-                continue
-            if np.min(gaps) <= tol:
-                return candidate_pos2
-            if attempt > 0 and attempt % 2000 == 0:
-                tol += 0.05 * mean_radius
-
-        if candidate_pos2 is None:
-            candidate_pos2 = pos2_rotated + new_com2
-        return candidate_pos2
+        return random_monte_carlo_merge(
+            pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+        )

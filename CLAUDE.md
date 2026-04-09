@@ -26,12 +26,20 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 - **ParticleDistribution**: ABC with `Monodisperse(radius)` and `LognormalDistribution(mean, std)` implementations. Generators call `sample(n)` to get particle sizes.
 
 ### Generators (`src/pyFracAggregate/generators/`)
-- **BaseGenerator**: ABC accepting `(n_particles, df, kf, particle_dist, overlap_tolerance)`. All generators produce an `Aggregate` via `generate()`.
+- **BaseGenerator**: ABC accepting `(n_particles, df, kf, particle_dist, overlap_tolerance, placement='algebraic')`. All generators produce an `Aggregate` via `generate()`.
 - **Factory**: `get_generator(method, ...)` dispatches to:
-  - `'pca'` → `PCAFilippovGenerator` — particle-cluster aggregation
-  - `'cca'` → `CCAFilippovGenerator` — cluster-cluster aggregation
+  - `'pca'` → `PCAGenerator` — particle-cluster aggregation
+  - `'cca'` → `CCAGenerator` — cluster-cluster aggregation
   - `'fracval'` → `FracVALGenerator` — FracVAL algorithm
+  - `'tdcca'` → `ThouyJullienGenerator` — Thouy & Jullien (2004) algorithm
 - All generators share the same constructor signature from `BaseGenerator`.
+
+#### Placement Strategy Layer (`src/pyFracAggregate/generators/placement/`)
+- **PlacementStrategy** ABC with `place_particle()` (PCA stage) and `merge_clusters()` (CCA stage).
+- **AlgebraicPlacement** (FLAGE, Skorupski et al., 2014): Algebraic touching-point computation with random Monte Carlo fallback. Default strategy.
+- **RandomPlacement** (Filippov et al., 2000): Pure random Monte Carlo sampling with tolerance relaxation.
+- **`get_placement(name)`** factory returns a `PlacementStrategy` by name (`'algebraic'` or `'random'`).
+- **`_helpers.py`**: Shared Monte Carlo helpers (`random_monte_carlo_place`, `random_monte_carlo_merge`) used by both strategies.
 
 ### Analysis (`src/pyFracAggregate/analysis/`)
 - `morphology`: `radius_of_gyration()`, `center_of_mass()`
@@ -43,7 +51,7 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 - **data.py**: `export_to_json()` for structured data output
 
 ### Top-level API (`__init__.py`)
-`pfa.generate(n_particles, df, kf, method)` and `pfa.analyze(aggregate)` are the primary entry points. `generate()` delegates to the factory.
+`pfa.generate(n_particles, df, kf, method, placement='algebraic')` and `pfa.analyze(aggregate)` are the primary entry points. `generate()` delegates to the factory. The `placement` parameter selects the placement strategy (`'algebraic'` or `'random'`).
 
 ## Key Conventions
 - Python 3.9+, type hints throughout
