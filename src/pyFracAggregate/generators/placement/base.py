@@ -65,10 +65,14 @@ def get_placement(name: str) -> PlacementStrategy:
     """Factory for placement strategies.
 
     Args:
-        name: 'algebraic' (default, FLAGE) or 'random' (Filippov).
+        name: 'algebraic' (FLAGE) or 'random' (Filippov, wired in Task 3).
 
     Raises:
         ValueError: If name is not recognized.
     """
-    # Will be populated in Task 2 and Task 3
+    from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
+
+    name = name.lower()
+    if name == 'algebraic':
+        return AlgebraicPlacement()
     raise ValueError(f"Unknown placement strategy: {name}")
