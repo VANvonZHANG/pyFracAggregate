@@ -8,7 +8,7 @@ from pyFracAggregate.core.math_utils import (
     random_point_on_circle,
 )
 from pyFracAggregate.generators.base import BaseGenerator
-from pyFracAggregate.generators.pca_flage import PCAFlageGenerator
+from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.analysis.morphology import center_of_mass, radius_of_gyration
 
 
@@ -21,7 +21,7 @@ class FracVALGenerator(BaseGenerator):
 
     def generate(self) -> Aggregate:
         if self.n_particles <= 8:
-            pca_gen = PCAFlageGenerator(
+            pca_gen = PCAGenerator(
                 self.n_particles, self.df, self.kf, self.particle_dist,
                 self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
             )
@@ -48,7 +48,7 @@ class FracVALGenerator(BaseGenerator):
                 def sample(self, n):
                     return self.r
 
-            local_pca = PCAFlageGenerator(
+            local_pca = PCAGenerator(
                 curr_size, self.df, self.kf,
                 LocalDist(radii[idx:idx + curr_size]),
                 self.overlap_tolerance, self.length_unit, self.mass_unit, self.density
