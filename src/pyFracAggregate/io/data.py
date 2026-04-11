@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import yaml
 from pyFracAggregate.core.aggregate import Aggregate
