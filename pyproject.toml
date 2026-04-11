@@ -15,14 +15,11 @@ dependencies = [
     "numpy>=1.21.0",
     "scipy>=1.7.0",
     "mathutils>=3.0.0",
-    "trimesh",
-    "lxml"
+    "pyvista",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]
-science = [
-    "pyvista"
-]
 plot = [
     "matplotlib>=3.5.0"
 ]
