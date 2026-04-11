@@ -87,36 +87,37 @@ def export_rotation_video(
             "Install with: pip install imageio[ffmpeg]"
         )
 
-    mesh = _build_sphere_mesh(aggregate)
-    plotter = pv.Plotter(off_screen=True, window_size=window_size)
-    plotter.set_background(background)
-    plotter.add_mesh(mesh, color=color, opacity=opacity)
-
-    center = np.mean(aggregate.positions, axis=0)
-    rg = np.max(np.linalg.norm(aggregate.positions - center, axis=1))
-    distance = max(rg * 4, 10.0)
-
     writer = imageio.get_writer(path, fps=fps)
-
     try:
-        for i in range(n_frames):
-            angle = 360.0 * i / n_frames
-            azimuth_rad = np.radians(angle)
-            elevation_rad = np.radians(elevation)
+        mesh = _build_sphere_mesh(aggregate)
+        plotter = pv.Plotter(off_screen=True, window_size=window_size)
+        plotter.set_background(background)
+        plotter.add_mesh(mesh, color=color, opacity=opacity)
 
-            pos = center + distance * np.array([
-                np.cos(elevation_rad) * np.cos(azimuth_rad),
-                np.cos(elevation_rad) * np.sin(azimuth_rad),
-                np.sin(elevation_rad),
-            ])
+        center = np.mean(aggregate.positions, axis=0)
+        rg = np.max(np.linalg.norm(aggregate.positions - center, axis=1))
+        distance = max(rg * 4, 10.0)
 
-            plotter.camera.position = pos
-            plotter.camera.focal_point = center
-            plotter.camera.up = (0, 0, 1)
-            plotter.reset_camera_clipping_range()
+        try:
+            for i in range(n_frames):
+                angle = 360.0 * i / n_frames
+                azimuth_rad = np.radians(angle)
+                elevation_rad = np.radians(elevation)
 
-            frame = plotter.screenshot(return_img=True)
-            writer.append_data(frame)
+                pos = center + distance * np.array([
+                    np.cos(elevation_rad) * np.cos(azimuth_rad),
+                    np.cos(elevation_rad) * np.sin(azimuth_rad),
+                    np.sin(elevation_rad),
+                ])
+
+                plotter.camera.position = pos
+                plotter.camera.focal_point = center
+                plotter.camera.up = (0, 0, 1)
+                plotter.reset_camera_clipping_range()
+
+                frame = plotter.screenshot(return_img=True)
+                writer.append_data(frame)
+        finally:
+            plotter.close()
     finally:
         writer.close()
-        plotter.close()
