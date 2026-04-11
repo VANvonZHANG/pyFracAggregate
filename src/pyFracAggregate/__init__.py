@@ -8,7 +8,6 @@ from pyFracAggregate.analysis.correlation import (
     estimate_fractal_dimension,
     plot_pair_correlation
 )
-from pyFracAggregate.io.mesh import export_glb, export_3mf
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_yaml
 from pyFracAggregate.generators.pca import PCAGenerator
@@ -91,11 +90,9 @@ __all__ = [
     "pair_correlation_function",
     "estimate_fractal_dimension",
     "plot_pair_correlation",
-    "export_glb",
-    "export_3mf",
+    "export_yaml",
     "export_vtm",
     "export_vtk",
-    "export_yaml",
     "PCAGenerator",
     "CCAGenerator",
     "FracVALGenerator",
