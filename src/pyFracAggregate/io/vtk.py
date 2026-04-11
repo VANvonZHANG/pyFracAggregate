@@ -1,6 +1,6 @@
-import numpy as np
 import pyvista as pv
 from pyFracAggregate.core.aggregate import Aggregate
+from pyFracAggregate.io.visualization import _build_sphere_mesh
 
 
 def export_vtm(aggregate: Aggregate, path: str):
@@ -8,14 +8,7 @@ def export_vtm(aggregate: Aggregate, path: str):
 
     Each monomer is represented as a separate sphere block.
     """
-    blocks = pv.MultiBlock()
-    positions = aggregate.positions
-    radii = aggregate.radii
-
-    for i in range(len(positions)):
-        sphere = pv.Sphere(radius=radii[i], center=positions[i])
-        blocks.append(sphere)
-
+    blocks = _build_sphere_mesh(aggregate)
     blocks.save(path)
 
 

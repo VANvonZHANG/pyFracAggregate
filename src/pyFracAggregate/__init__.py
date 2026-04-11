@@ -10,6 +10,7 @@ from pyFracAggregate.analysis.correlation import (
 )
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_yaml
+from pyFracAggregate.io.visualization import export_render
 from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
 from pyFracAggregate.generators.fracval import FracVALGenerator
@@ -91,6 +92,7 @@ __all__ = [
     "estimate_fractal_dimension",
     "plot_pair_correlation",
     "export_yaml",
+    "export_render",
     "export_vtm",
     "export_vtk",
     "PCAGenerator",
