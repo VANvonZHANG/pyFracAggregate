@@ -37,12 +37,11 @@ def export_render(
         window_size: (width, height) in pixels.
     """
     plotter = pv.Plotter(off_screen=True, window_size=window_size)
-    plotter.set_background(background)
-    mesh = _build_sphere_mesh(aggregate)
-    plotter.add_mesh(mesh, color=color, opacity=opacity)
-    if isinstance(camera_position, str):
+    try:
+        plotter.set_background(background)
+        mesh = _build_sphere_mesh(aggregate)
+        plotter.add_mesh(mesh, color=color, opacity=opacity)
         plotter.camera_position = camera_position
-    else:
-        plotter.camera_position = camera_position
-    plotter.screenshot(path)
-    plotter.close()
+        plotter.screenshot(path)
+    finally:
+        plotter.close()
