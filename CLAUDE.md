@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 pip install -e ".[dev]"        # Editable install with dev tools (pytest, ruff, mypy)
-pip install -e ".[science]"    # Include pyvista for VTK visualization
 pip install -e ".[plot]"       # Include matplotlib for plotting
 pytest                        # Run all tests
 pytest tests/test_core/test_aggregate.py  # Run a single test file
@@ -46,12 +45,11 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 - `correlation`: `pair_correlation_function()`, `estimate_fractal_dimension()`, `plot_pair_correlation()`
 
 ### IO (`src/pyFracAggregate/io/`)
-- **mesh.py**: `export_glb()` (glTF binary) and `export_3mf()` via trimesh
-- **vtk.py**: `export_vtm()` and `export_vtk()` via pyvista (optional dependency)
-- **data.py**: `export_to_json()` for structured data output
+- **data.py**: `export_yaml()` — full aggregate snapshot (data, generation params, analysis results)
+- **vtk.py**: `export_vtm()` (MultiBlock) and `export_vtk()` (point cloud) via pyvista
 
 ### Top-level API (`__init__.py`)
-`pfa.generate(n_particles, df, kf, method, placement='algebraic')` and `pfa.analyze(aggregate)` are the primary entry points. `generate()` delegates to the factory. The `placement` parameter selects the placement strategy (`'algebraic'` or `'random'`).
+`pfa.generate(n_particles, df, kf, method, placement='algebraic')` and `pfa.analyze(aggregate)` are the primary entry points. `generate()` delegates to the factory. The `placement` parameter selects the placement strategy (`'algebraic'` or `'random'`). IO exports include `export_yaml()` (full snapshot), `export_vtk()` (point cloud), and `export_vtm()` (MultiBlock).
 
 ## Key Conventions
 - Python 3.9+, type hints throughout
