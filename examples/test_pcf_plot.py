@@ -34,9 +34,9 @@ def main():
         save_path=save_path
     )
     
-    # 4. Also export other formats to keep them updated
-    print("Exporting to GLB and VTK...")
-    pfa.export_glb(aggregate, "output/large_agg.glb")
+    # 4. Export to YAML and VTK
+    print("Exporting to YAML and VTK...")
+    pfa.export_yaml(aggregate, "output/large_agg.yaml", analysis_results=results)
     pfa.export_vtk(aggregate, "output/large_agg.vtk")
 
     print(f"\nVerification complete. Please check '{save_path}' for the analysis plot.")
