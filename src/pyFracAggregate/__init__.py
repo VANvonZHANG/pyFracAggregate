@@ -10,7 +10,7 @@ from pyFracAggregate.analysis.correlation import (
 )
 from pyFracAggregate.io.mesh import export_glb, export_3mf
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
-from pyFracAggregate.io.data import export_to_json
+from pyFracAggregate.io.data import export_yaml
 from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
 from pyFracAggregate.generators.fracval import FracVALGenerator
@@ -95,7 +95,7 @@ __all__ = [
     "export_3mf",
     "export_vtm",
     "export_vtk",
-    "export_to_json",
+    "export_yaml",
     "PCAGenerator",
     "CCAGenerator",
     "FracVALGenerator",
