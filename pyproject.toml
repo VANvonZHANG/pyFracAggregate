@@ -21,7 +21,8 @@ dependencies = [
 
 [project.optional-dependencies]
 plot = [
-    "matplotlib>=3.5.0"
+    "matplotlib>=3.5.0",
+    "imageio[ffmpeg]>=2.9.0",
 ]
 dev = [
     "pytest",
