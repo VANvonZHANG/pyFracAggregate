@@ -74,7 +74,7 @@ def export_rotation_video(
 
     Raises:
         ValueError: If path does not end in .mp4.
-        ImportError: If imageio-ffmpeg is not installed.
+        ImportError: If imageio is not installed.
     """
     if not path.lower().endswith(".mp4"):
         raise ValueError(f"Output path must end in .mp4, got: {path}")
