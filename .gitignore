@@ -47,10 +47,8 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
-.基礎_cache/
 .pytest_cache/
 .hypothesis/
-.pytest_cache/
 
 # Translations
 *.mo
@@ -137,6 +135,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# ruff
+.ruff_cache/
+
 # Pyre type checker
 .pyre/
 
@@ -158,7 +159,6 @@ Thumbs.db
 # Project specific
 debug_cca.py
 debug_pca.py
-*.json
 *.py.bak
 
 # Output data and artifacts
