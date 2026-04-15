@@ -17,12 +17,12 @@ dependencies = [
     "mathutils>=3.0.0",
     "pyvista",
     "pyyaml",
+    "imageio[ffmpeg]>=2.9.0",
 ]
 
 [project.optional-dependencies]
 plot = [
     "matplotlib>=3.5.0",
-    "imageio[ffmpeg]>=2.9.0",
 ]
 dev = [
     "pytest",
