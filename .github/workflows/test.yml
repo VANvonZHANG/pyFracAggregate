@@ -15,5 +15,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,plot]"
       - run: xvfb-run pytest
