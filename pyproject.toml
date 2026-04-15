@@ -34,3 +34,17 @@ dev = [
 markers = [
     "benchmark: performance benchmark tests (deselect with '-m \"not benchmark\"')",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyFracAggregate"]
+exclude = [
+    "tests",
+    "docs",
+    "examples",
+    ".github",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    ".github",
+]
