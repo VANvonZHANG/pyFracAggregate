@@ -9,5 +9,6 @@ A Python library for generating synthetic fractal aggregates (soot-like, aerosol
 ```{toctree}
 :maxdepth: 2
 
+background/index
 api-reference/index
 ```
