@@ -17,14 +17,24 @@ def get_generator(
 ) -> BaseGenerator:
     method = method.lower()
 
+    surface_beta = kwargs.pop('surface_beta', None)
+    placement_name = kwargs.get('placement', 'algebraic')
+    if surface_beta is not None and (
+        method not in ('pca', 'cca') or placement_name != 'algebraic'
+    ):
+        raise TypeError(
+            "surface_beta only applies to method='pca' or 'cca' "
+            "with placement='algebraic'."
+        )
+
     if method == 'pca':
-        return PCAGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+        gen = PCAGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'cca':
-        return CCAGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+        gen = CCAGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'fracval':
-        return FracVALGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+        gen = FracVALGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method == 'tdcca':
-        return ThouyJullienGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
+        gen = ThouyJullienGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
     elif method in ('flage_pca', 'flage_cca'):
         raise ValueError(
             f"method='{method}' has been removed. Use method='{'pca' if method == 'flage_pca' else 'cca'}' "
@@ -33,3 +43,7 @@ def get_generator(
         )
     else:
         raise ValueError(f"Unknown generation method: {method}")
+
+    if surface_beta is not None:
+        gen.placement.surface_beta = surface_beta
+    return gen
