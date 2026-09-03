@@ -1,3 +1,14 @@
+"""pyFracAggregate: generation and analysis of synthetic fractal aggregates.
+
+This library builds clusters of spherical primary particles (soot-like,
+aerosol-like) with tunable fractal morphology, unifying four classical
+generation algorithms: particle-cluster aggregation (PCA), cluster-cluster
+aggregation (CCA), FracVAL, and the lattice-based Thouy & Jullien method.
+It also provides morphological analysis (radius of gyration, pair correlation
+function, fractal-dimension estimation) and export to YAML, VTK/VTM, rendered
+images, and rotation videos.
+"""
+
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.generators.factory import get_generator
@@ -18,7 +29,7 @@ from pyFracAggregate.generators.tdcca import ThouyJullienGenerator
 from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
 from pyFracAggregate.generators.placement.random_ import RandomPlacement
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Fan Zhang"
 
 def generate(

@@ -30,7 +30,7 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
   - `'pca'` → `PCAGenerator` — particle-cluster aggregation
   - `'cca'` → `CCAGenerator` — cluster-cluster aggregation
   - `'fracval'` → `FracVALGenerator` — FracVAL algorithm
-  - `'tdcca'` → `ThouyJullienGenerator` — Thouy & Jullien (2004) algorithm
+  - `'tdcca'` → `ThouyJullienGenerator` — Thouy & Jullien (1994) algorithm
 - All generators share the same constructor signature from `BaseGenerator`.
 
 #### Placement Strategy Layer (`src/pyFracAggregate/generators/placement/`)
