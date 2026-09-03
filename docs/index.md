@@ -14,5 +14,6 @@ user-guide/installation
 user-guide/generators
 user-guide/analysis
 user-guide/io
+tutorials/basic_usage
 api-reference/index
 ```
