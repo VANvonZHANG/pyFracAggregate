@@ -18,7 +18,7 @@ from pyFracAggregate.generators.tdcca import ThouyJullienGenerator
 from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
 from pyFracAggregate.generators.placement.random_ import RandomPlacement
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __author__ = "Fan Zhang"
 
 def generate(

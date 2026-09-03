@@ -20,8 +20,9 @@ class AlgebraicPlacement(PlacementStrategy):
     with random Monte Carlo as fallback.
     """
 
-    def __init__(self, overlap_tolerance: float = 0.0):
+    def __init__(self, overlap_tolerance: float = 0.0, surface_beta: float = 0.3):
         self.overlap_tolerance = overlap_tolerance
+        self.surface_beta = surface_beta
 
     def place_particle(
         self,
@@ -88,8 +89,8 @@ class AlgebraicPlacement(PlacementStrategy):
         la1 = dists1 + r1
         la2 = np.linalg.norm(pos2_centered, axis=1) + r2
 
-        surface1_idx = np.where(la1 >= Gamma * 0.3)[0]
-        surface2_idx = np.where(la2 >= Gamma * 0.3)[0]
+        surface1_idx = np.where(la1 >= Gamma * self.surface_beta)[0]
+        surface2_idx = np.where(la2 >= Gamma * self.surface_beta)[0]
 
         if len(surface1_idx) == 0:
             surface1_idx = np.arange(N1)
