@@ -167,3 +167,4 @@ debug_pca.py
 
 # Output data and artifacts
 output/
+benchmarks/results/
