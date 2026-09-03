@@ -88,7 +88,7 @@ guarantees, and limits.
 Full documentation — background theory, user guide, tutorial, API reference,
 architecture notes, and contributing instructions — is hosted at:
 
-**https://vanvonzhang.github.io/pyFracAggregate/**
+[Documentation](https://vanvonzhang.github.io/pyFracAggregate/)
 
 ## License
 

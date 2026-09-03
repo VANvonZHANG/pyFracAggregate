@@ -197,6 +197,8 @@ The test suite mirrors the source layout:
   strategies, FLAGE optimizer
 - `tests/test_analysis/` — morphology and correlation functions
 - `tests/test_io/` — YAML and visualization exports
+- `tests/test_density.py` — root-level density test
+- `tests/fixtures/` — shared fixture data (`surface_beta_snapshot.npy`)
 
 Slow performance tests carry the `benchmark` pytest marker and can be
 deselected with `-m "not benchmark"` (see

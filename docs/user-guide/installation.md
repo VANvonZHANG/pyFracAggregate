@@ -14,7 +14,7 @@ used for 3D vector/quaternion math. Its C extension targets the 3.13 ABI, and
 on several platforms no usable wheel exists for older interpreters, so older
 Pythons fail at install time with compilation errors. If you see such errors,
 switch to Python 3.13+ rather than fighting the build. The core runtime
-dependencies (NumPy, SciPy, pyvista, PyYAML, imageio) are installed
+dependencies (mathutils, NumPy, SciPy, pyvista, PyYAML, imageio) are installed
 automatically.
 ```
 

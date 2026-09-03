@@ -53,8 +53,8 @@ primary-particle radius.
 
 - **{math}`D_f`, the fractal dimension**, states how mass grows with linear
   size: {math}`D_f = 3` is a compact sphere, {math}`D_f = 1` a chain.
-  Diffusion-limited cluster aggregation gives {math}`D_f \approx 1.8`–
-  {math}`1.9`, reaction-limited aggregation {math}`D_f \approx 2.1`; flame
+  Diffusion-limited cluster aggregation gives {math}`D_f \approx 1.75`–
+  {math}`1.8`, reaction-limited aggregation {math}`D_f \approx 2.1`; flame
   soot is typically reported at {math}`1.6`–{math}`1.9`.
 - **{math}`k_f`, the fractal prefactor**, quantifies packing density at fixed
   {math}`N`; soot-like values are {math}`1.2`–{math}`2.4`. Since {math}`k_f`
@@ -86,7 +86,7 @@ Primary sizes enter through a distribution object:
 [Monodisperse](/api-reference/index.md#core) gives every particle the same
 radius (the default); [LognormalDistribution](/api-reference/index.md#core)
 samples from a lognormal with geometric mean `mean` and geometric standard
-deviation `std` ({math}`\sigma_g \geq 1`; smaller values collapse to the
+deviation `std` ({math}`\sigma_g \geq 1`; values at or below 1.0 collapse to the
 monodisperse case).
 
 The scaling law presumes a single {math}`a_p`; with polydisperse primaries two
@@ -230,8 +230,10 @@ k^2 = 4 \left( 4^{1/D_f} - 1 \right),
 
 {math}`k` ensures that merging two equal clusters doubles {math}`N` while
 {math}`R_g` grows by {math}`2^{1/D_f}`; the additive constant (distances in
-units of the mean primary radius) anchors the criterion at the dimer stage,
-where {math}`R_{g,1} = R_{g,2} = 0` and two touching monomers must result.
+Thouy & Jullien lattice units, where the lattice spacing equals one
+particle diameter) anchors the criterion at the dimer stage, where
+{math}`R_{g,1} = R_{g,2} = 0` and {math}`\Gamma^2 = +1` places the two
+monomers at touching distance.
 Each merge keeps, among random relative orientations, the configuration whose
 actual {math}`\Gamma^2` deviates least from the target. Here the initial
 dimers form along the 26 neighbor directions of a cubic lattice; coordinates
@@ -296,14 +298,14 @@ the full signature.
   - fast baselines; parameter scans
 * - `cca`
   - cluster-cluster
-  - any N ≥ 2 (N ≤ 8 via PCA)
+  - any N ≥ 1 (N ≤ 8 via PCA)
   - approximate (number-weighted Γ)
   - per-merge Γ, Filippov et al.
   - none
   - monodisperse hierarchical structure
 * - `fracval`
   - cluster-cluster
-  - any N ≥ 2 (N ≤ 8 via PCA)
+  - any N ≥ 1 (N ≤ 8 via PCA)
   - native (mass-weighted)
   - per-merge Γ, Morán Eqs. (3), (6)
   - none

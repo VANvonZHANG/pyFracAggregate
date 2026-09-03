@@ -58,7 +58,7 @@ Primary-particle radii come from a `ParticleDistribution`. Two are provided:
 
 - `Monodisperse(radius)` — all primaries share one radius.
 - `LognormalDistribution(mean, std)` — `mean` is the *geometric* mean radius
-  and `std` the *geometric* standard deviation (values below 1.0 collapse to
+  and `std` the *geometric* standard deviation (values at or below 1.0 collapse to
   monodisperse).
 
 ```python
