@@ -73,6 +73,10 @@ intersphinx_mapping = {
     "pyvista": ("https://docs.pyvista.org/", None),
 }
 
+# Inventory fetches can be slow on constrained networks; don't let a hung
+# fetch stall the (CI) build forever.
+intersphinx_timeout = 30
+
 # -- Options for HTML output ---------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
