@@ -10,5 +10,9 @@ A Python library for generating synthetic fractal aggregates (soot-like, aerosol
 :maxdepth: 2
 
 background/index
+user-guide/installation
+user-guide/generators
+user-guide/analysis
+user-guide/io
 api-reference/index
 ```
