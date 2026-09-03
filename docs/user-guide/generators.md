@@ -179,6 +179,9 @@ print(np.array_equal(first.positions, second.positions))  # True
 This was verified for all four methods, both placement strategies, and
 lognormal size distributions: same seed → bit-identical particle data;
 different seed → a different realization. Note that for `pca` the radius of
-gyration is fixed by `(n_particles, df, kf)` regardless of seed — the seed
+gyration is essentially fixed by `(n_particles, df, kf)` — seed-dependent
+variation appears only in the fourth to fifth decimal place (each particle
+sits at exactly the target distance from the running geometric center, so
+only the CoM-vs-running-center correction varies with seed). The seed
 varies the cluster's texture (orientations and contact choices), not its
 overall size.
