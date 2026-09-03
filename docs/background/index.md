@@ -73,9 +73,10 @@ for ensemble statements.
 **How this library measures quality.**
 [analyze()](/api-reference/index.md#analysis) returns `Df_estimated` and `R2`
 from the pair correlation function {math}`C(r)`, which for a mass fractal
-obeys {math}`C(r) \propto r^{D_f - 3}`: `Df_estimated` is the slope of a
-log-log regression over the fractal regime between the mean primary radius
-and {math}`R_g`, `R2` the goodness of fit. The intended workflow is: generate,
+obeys {math}`C(r) \propto r^{D_f - 3}`: the slope of the log-log regression
+over the fractal regime between the mean primary radius and {math}`R_g`
+equals {math}`D_f - 3`, so `Df_estimated` is the fitted slope plus 3, `R2`
+the goodness of fit. The intended workflow is: generate,
 analyze, compare `Df_estimated` with the requested `df`, then iterate or
 average.
 
