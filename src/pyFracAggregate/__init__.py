@@ -9,6 +9,7 @@ function, fractal-dimension estimation) and export to YAML, VTK/VTM, rendered
 images, and rotation videos.
 """
 
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -35,6 +36,22 @@ from pyFracAggregate.generators.placement.constructed import ConstructedPlacemen
 
 __version__ = "0.3.0"
 __author__ = "Fan Zhang"
+
+
+@dataclass
+class MorphologyReport:
+    """Typed morphology summary of an aggregate (spec 2.5, deviation N3).
+
+    Attribute names are snake_case; `export_yaml` maps them to the legacy
+    capitalized snapshot keys ("Rg", "Df_estimated", ...).
+    """
+    rg: float
+    df_est: float
+    r2: float
+    r_centers: np.ndarray
+    pair_correlation: np.ndarray
+    com: np.ndarray
+    n: int
 
 def generate(
     n_particles: int,
@@ -88,27 +105,31 @@ def generate(
 
     return generator.generate()
 
-def analyze(aggregate: Aggregate):
+def analyze(aggregate: Aggregate) -> MorphologyReport:
     """
-    Compute core morphological properties.
+    Compute the core morphological properties of an aggregate.
     """
     rg = radius_of_gyration(aggregate)
     r_centers, c_r = pair_correlation_function(aggregate)
-    df_est, r2, _ = estimate_fractal_dimension(r_centers, c_r,
-                                               r_min=np.mean(aggregate.radii),
-                                               r_max=rg)
+    df_est, r2, _ = estimate_fractal_dimension(
+        r_centers, c_r,
+        r_min=float(np.mean(aggregate.radii)), r_max=rg,
+    )
+    return MorphologyReport(
+        rg=rg,
+        df_est=df_est,
+        r2=r2,
+        r_centers=r_centers,
+        pair_correlation=c_r,
+        com=center_of_mass(aggregate),
+        n=aggregate.current_size,
+    )
 
-    return {
-        "Rg": rg,
-        "CoM": center_of_mass(aggregate),
-        "N": aggregate.current_size,
-        "Df_estimated": df_est,
-        "R2": r2
-    }
 
 __all__ = [
     "generate",
     "analyze",
+    "MorphologyReport",
     "Aggregate",
     "Monodisperse",
     "LognormalDistribution",

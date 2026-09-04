@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
+
+if TYPE_CHECKING:  # avoids an import cycle at runtime
+    from pyFracAggregate import MorphologyReport
 import yaml
 from pyFracAggregate.core.aggregate import Aggregate
 
@@ -20,12 +25,25 @@ def _to_native(obj):
     return obj
 
 
+def _report_to_legacy_dict(report) -> dict:
+    """MorphologyReport -> 0.x snapshot key names (spec 2.5, deviation N3)."""
+    return {
+        "Rg": report.rg,
+        "CoM": report.com,
+        "N": report.n,
+        "Df_estimated": report.df_est,
+        "R2": report.r2,
+        "r_centers": report.r_centers,
+        "pair_correlation": report.pair_correlation,
+    }
+
+
 def export_yaml(
     aggregate: Aggregate,
     output_path: str,
     *,
     generation_params: dict | None = None,
-    analysis_results: dict | None = None,
+    analysis_results: "dict | MorphologyReport | None" = None,
 ) -> None:
     """Export aggregate to YAML with optional generation params and analysis results.
 
@@ -33,8 +51,15 @@ def export_yaml(
         aggregate: The fractal aggregate object to export.
         output_path: Path to save the YAML file.
         generation_params: Optional dict of generation parameters (method, df, kf, etc.).
-        analysis_results: Optional dict of analysis results (Rg, center_of_mass, etc.).
+        analysis_results: Optional dict of analysis results, or a
+            MorphologyReport from pfa.analyze (serialized under the legacy
+            key names "Rg"/"CoM"/"N"/"Df_estimated"/"R2" plus the new
+            "r_centers"/"pair_correlation").
     """
+    if analysis_results is not None and not isinstance(analysis_results, dict):
+        from pyFracAggregate import MorphologyReport  # local import: avoid cycle
+        if isinstance(analysis_results, MorphologyReport):
+            analysis_results = _report_to_legacy_dict(analysis_results)
     data = {}
 
     if generation_params is not None:
