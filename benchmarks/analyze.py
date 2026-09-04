@@ -74,11 +74,14 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
                 if n != N:
                     continue
                 mean, std, _ = _mean_std(vals)
-                xs.append(df); ys.append(mean); es.append(std)
+                xs.append(df)
+                ys.append(mean)
+                es.append(std)
             ax.errorbar(xs, ys, yerr=es, marker="o", capsize=3,
                         label=f"N={int(N)}")
         ax.plot([1.3, 2.5], [1.3, 2.5], "k--", lw=0.8, label="1:1")
-        ax.set_title(f"{m}/{pl}"); ax.set_xlabel("target $D_f$")
+        ax.set_title(f"{m}/{pl}")
+        ax.set_xlabel("target $D_f$")
     axes[0][0].set_ylabel("$D_{f,est}$")
     axes[0][0].legend(fontsize=8)
     _wm(fig, watermark)
@@ -97,7 +100,8 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
         ys = [_mean_std(pts[x])[0] for x in xs]
         ax.plot([math.log10(x) for x in xs], ys, "o-", ms=3,
                 label=f"Df={df},kf={kf}")
-    ax.set_xlabel("log10 N"); ax.set_ylabel("log10 Rg")
+    ax.set_xlabel("log10 N")
+    ax.set_ylabel("log10 Rg")
     ax.legend(fontsize=7)
     _wm(fig, watermark)
     fig.tight_layout()
@@ -114,7 +118,8 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
         xs = sorted(pts)
         ys = [_mean_std(pts[x])[0] for x in xs]
         ax.loglog(xs, ys, "o-", ms=3, label=f"{m}/{p}")
-    ax.set_xlabel("N"); ax.set_ylabel("generation time [s]")
+    ax.set_xlabel("N")
+    ax.set_ylabel("generation time [s]")
     ax.legend(fontsize=7)
     _wm(fig, watermark)
     fig.tight_layout()
@@ -135,9 +140,12 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
              for b in betas]
         a1.plot(betas, t, "o-", label=f"N={int(N)}")
         a2.plot(betas, d, "o-", label=f"N={int(N)}")
-    a1.set_xlabel(r"$\beta$"); a1.set_ylabel("time [s]"); a1.legend(fontsize=8)
+    a1.set_xlabel(r"$\beta$")
+    a1.set_ylabel("time [s]")
+    a1.legend(fontsize=8)
     a2.set_xlabel(r"$\beta$")
-    a2.set_ylabel(r"$|D_{f,est}-D_f|$"); a2.set_yscale("log")
+    a2.set_ylabel(r"$|D_{f,est}-D_f|$")
+    a2.set_yscale("log")
     _wm(fig, watermark)
     fig.tight_layout()
     fig.savefig(os.path.join(figs, "fig_beta_tradeoff.png"), dpi=200)
@@ -165,7 +173,8 @@ def _write_tables(exp1, outdir):
         for n in Ns:
             mean, std, cnt = _mean_std(cells.get((m, pl, df, kf, n), []))
             if cnt == 0:
-                row_tex.append("--"); row_csv.append("")
+                row_tex.append("--")
+                row_csv.append("")
             else:
                 row_tex.append(f"{mean:.3f}$\\pm${std:.3f}")
                 row_csv.append(f"{mean:.3f}±{std:.3f}")

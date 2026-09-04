@@ -3,9 +3,9 @@ from scipy.spatial import cKDTree
 from pyFracAggregate.core.aggregate import Aggregate
 
 def pair_correlation_function(
-    aggregate: Aggregate, 
-    bins: int = 50, 
-    r_max: float = None
+    aggregate: Aggregate,
+    bins: int = 50,
+    r_max: "float | None" = None
 ) -> tuple[np.ndarray, np.ndarray]:
     """Calculates the two-point density correlation function C(r).
 
@@ -77,10 +77,10 @@ def pair_correlation_function(
     return r_centers, c_r
 
 def estimate_fractal_dimension(
-    r_centers: np.ndarray, 
-    c_r: np.ndarray, 
-    r_min: float = None, 
-    r_max: float = None
+    r_centers: np.ndarray,
+    c_r: np.ndarray,
+    r_min: "float | None" = None,
+    r_max: "float | None" = None
 ) -> tuple[float, float, dict]:
     """Estimates the fractal dimension Df from the pair correlation function C(r).
 
@@ -138,11 +138,11 @@ def estimate_fractal_dimension(
     return df, r_squared, fit_results
 
 def plot_pair_correlation(
-    aggregate: Aggregate, 
-    bins: int = 50, 
-    show_fit: bool = True, 
-    reference_df: float = None, 
-    save_path: str = None
+    aggregate: Aggregate,
+    bins: int = 50,
+    show_fit: bool = True,
+    reference_df: "float | None" = None,
+    save_path: "str | None" = None
 ) -> None:
     """Plots the pair correlation function and optionally its fractal fit.
 

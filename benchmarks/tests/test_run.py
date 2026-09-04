@@ -1,7 +1,6 @@
 """Runner tests: dry-run listing, idempotent resume, failure rows."""
 import csv
 import numpy as np
-import pytest
 from benchmarks.run import execute, TINY_GRID, estimate_seconds
 
 

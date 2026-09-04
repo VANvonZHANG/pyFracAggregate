@@ -64,7 +64,7 @@ class ConstructedPlacement(PlacementStrategy):
             sj_pos = pos2_centered[sj_idx]
 
             # Sub-step c stage 1: contact geometry
-            si_direction = si_pos / max(np.linalg.norm(si_pos), 1e-12)
+            si_direction = si_pos / max(float(np.linalg.norm(si_pos)), 1e-12)
             contact_point_si = si_pos + r1[si_idx] * si_direction
 
             cp_result = sphere_sphere_intersection(
@@ -89,7 +89,7 @@ class ConstructedPlacement(PlacementStrategy):
                 continue
 
             sj_desired_dir = v_sj / v_sj_len
-            sj_current_dir = sj_pos / max(np.linalg.norm(sj_pos), 1e-12)
+            sj_current_dir = sj_pos / max(float(np.linalg.norm(sj_pos)), 1e-12)
 
             rot_axis = np.cross(sj_current_dir, sj_desired_dir)
             rot_axis_len = np.linalg.norm(rot_axis)

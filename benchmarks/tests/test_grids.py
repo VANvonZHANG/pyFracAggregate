@@ -1,5 +1,4 @@
 """Grid declaration tests: smoke subset of full (v0.4 coordinates)."""
-import math
 from benchmarks.grids import build_grid, ROW_FIELDS, sort_runs, make_dist
 
 

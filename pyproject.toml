@@ -61,6 +61,13 @@ docs = [
     "sphinx-copybutton>=0.5.0",
 ]
 
+[tool.mypy]
+python_version = "3.13"
+
+[[tool.mypy.overrides]]
+module = ["mathutils", "yaml", "scipy.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 markers = [
     "benchmark: performance benchmark tests (deselect with '-m \"not benchmark\"')",

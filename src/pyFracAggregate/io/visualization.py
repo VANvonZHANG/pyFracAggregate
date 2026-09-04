@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, cast
+
 import numpy as np
 import pyvista as pv
 from pyFracAggregate.core.aggregate import Aggregate
@@ -37,12 +39,12 @@ def export_render(
             or a (position, focal_point, up) tuple.
         window_size: (width, height) in pixels.
     """
-    plotter = pv.Plotter(off_screen=True, window_size=window_size)
+    plotter = pv.Plotter(off_screen=True, window_size=list(window_size))
     try:
-        plotter.set_background(background)
+        plotter.set_background(background)  # type: ignore[arg-type]  # pyvista stub quirk
         mesh = _build_sphere_mesh(aggregate)
         plotter.add_mesh(mesh, color=color, opacity=opacity)
-        plotter.camera_position = camera_position
+        plotter.camera_position = cast(Any, camera_position)
         plotter.screenshot(path)
     finally:
         plotter.close()
@@ -90,8 +92,8 @@ def export_rotation_video(
     writer = imageio.get_writer(path, fps=fps)
     try:
         mesh = _build_sphere_mesh(aggregate)
-        plotter = pv.Plotter(off_screen=True, window_size=window_size)
-        plotter.set_background(background)
+        plotter = pv.Plotter(off_screen=True, window_size=list(window_size))
+        plotter.set_background(background)  # type: ignore[arg-type]  # pyvista stub quirk
         plotter.add_mesh(mesh, color=color, opacity=opacity)
 
         center = np.mean(aggregate.positions, axis=0)
@@ -116,7 +118,8 @@ def export_rotation_video(
                 plotter.reset_camera_clipping_range()
 
                 frame = plotter.screenshot(return_img=True)
-                writer.append_data(frame)
+                if frame is not None:
+                    writer.append_data(frame)
         finally:
             plotter.close()
     finally:

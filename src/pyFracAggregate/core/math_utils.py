@@ -91,7 +91,7 @@ def sphere_sphere_intersection(
     h_sq = r1**2 - a**2
     if h_sq < -1e-12:
         return None
-    h = np.sqrt(max(h_sq, 0.0))
+    h = np.sqrt(max(float(h_sq), 0.0))
 
     circle_center = c1 + (a / d) * d_vec
     return circle_center, h
