@@ -18,13 +18,13 @@ def get_generator(
     method = method.lower()
 
     surface_beta = kwargs.pop('surface_beta', None)
-    placement_name = kwargs.get('placement', 'algebraic')
+    placement_name = kwargs.get('placement', 'solved')
     if surface_beta is not None and (
-        method not in ('pca', 'cca') or placement_name != 'algebraic'
+        method not in ('pca', 'cca') or placement_name not in ('algebraic', 'solved')
     ):
         raise TypeError(
             "surface_beta only applies to method='pca' or 'cca' "
-            "with placement='algebraic'."
+            "with placement='solved'."
         )
 
     if method == 'pca':
@@ -45,5 +45,5 @@ def get_generator(
         raise ValueError(f"Unknown generation method: {method}")
 
     if surface_beta is not None:
-        gen.placement.surface_beta = surface_beta
+        kwargs['surface_beta'] = surface_beta
     return gen

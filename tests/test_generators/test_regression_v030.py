@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+
 import pyFracAggregate as pfa
 
 FIX = Path(__file__).resolve().parents[1] / "fixtures"

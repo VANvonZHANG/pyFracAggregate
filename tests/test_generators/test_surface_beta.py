@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 import pyFracAggregate as pfa
-from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
+from pyFracAggregate.generators.placement.solved import SolvedPlacement
 
 
 SNAP = np.load("tests/fixtures/surface_beta_snapshot.npy")
 
 
 def test_surface_beta_default_attr():
-    assert AlgebraicPlacement().surface_beta == 0.3
+    assert SolvedPlacement().surface_beta == 0.3
 
 
 def test_snapshot_default_beta_unchanged():

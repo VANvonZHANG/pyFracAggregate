@@ -1,19 +1,13 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
-from pyFracAggregate.generators.placement.solvers import (
-    mc_touch_merge,
-    mc_touch_place,
-)
 from pyFracAggregate.generators.placement.base import PlacementStrategy
+from pyFracAggregate.generators.placement.solvers import mc_touch_merge, mc_touch_place
 
 
-class RandomPlacement(PlacementStrategy):
-    """Random Monte Carlo placement (Filippov et al., 2000).
+class SampledPlacement(PlacementStrategy):
+    """Emergent contact via Monte Carlo sampling (Filippov et al., 2000)."""
 
-    Samples positions on the Gamma sphere with gradual tolerance relaxation.
-    """
-
-    def __init__(self, overlap_tolerance: float = 0.0):
+    def __init__(self, overlap_tolerance: float = 1e-5):
         self.overlap_tolerance = overlap_tolerance
 
     def place_particle(
@@ -25,9 +19,8 @@ class RandomPlacement(PlacementStrategy):
         L: float,
         mean_radius: float,
     ) -> tuple | None:
-        return mc_touch_place(
-            agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
-        )
+        return mc_touch_place(agg, candidate_radius, geom_center, L,
+                              mean_radius, self.overlap_tolerance)
 
     def merge_clusters(
         self,
@@ -39,8 +32,6 @@ class RandomPlacement(PlacementStrategy):
         agg2: Aggregate,
         Gamma: float,
         mean_radius: float,
-    ) -> np.ndarray | None:
-        return mc_touch_merge(
-            pos1, r1, pos2_centered, r2, Gamma, mean_radius,
-            self.overlap_tolerance, track_best=True,
-        )
+    ) -> np.ndarray:
+        return mc_touch_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius,
+                              self.overlap_tolerance, track_best=True)

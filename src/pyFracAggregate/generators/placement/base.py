@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -17,7 +18,7 @@ class PlacementStrategy(ABC):
         geom_center: np.ndarray,
         L: float,
         mean_radius: float,
-    ) -> tuple:
+    ) -> tuple | None:
         """Place a single particle onto the Gamma sphere (PCA stage).
 
         Args:
@@ -43,7 +44,7 @@ class PlacementStrategy(ABC):
         agg2: Aggregate,
         Gamma: float,
         mean_radius: float,
-    ) -> np.ndarray:
+    ) -> np.ndarray | None:
         """Merge two sub-clusters (CCA stage).
 
         Args:
@@ -61,21 +62,53 @@ class PlacementStrategy(ABC):
         """
 
 
-def get_placement(name: str) -> PlacementStrategy:
+def get_placement(
+    name_or_strategy,
+    *,
+    overlap_tolerance: float = 1e-5,
+    surface_beta: float = 0.3,
+) -> PlacementStrategy:
     """Factory for placement strategies.
 
+    Accepts a name ('sampled' | 'solved' | 'constructed') or a
+    PlacementStrategy instance (pandas-style coercion). The legacy names
+    'algebraic' and 'random' resolve with a DeprecationWarning; they will be
+    removed in 1.0.
+
     Args:
-        name: 'algebraic' (FLAGE) or 'random' (Filippov, wired in Task 3).
+        name_or_strategy: Strategy name or instance.
+        overlap_tolerance: Allowed interpenetration between sphere surfaces.
+        surface_beta: Surface-particle filter fraction (solved only).
 
     Raises:
-        ValueError: If name is not recognized.
+        ValueError: If the name is not recognized.
     """
-    from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
-    from pyFracAggregate.generators.placement.random_ import RandomPlacement
+    from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
+    from pyFracAggregate.generators.placement.sampled import SampledPlacement
+    from pyFracAggregate.generators.placement.solved import SolvedPlacement
 
-    name = name.lower()
-    if name == 'algebraic':
-        return AlgebraicPlacement()
-    elif name == 'random':
-        return RandomPlacement()
-    raise ValueError(f"Unknown placement strategy: {name}")
+    if isinstance(name_or_strategy, PlacementStrategy):
+        return name_or_strategy
+
+    _DEPRECATED = {
+        "algebraic": ("solved", "placement='algebraic' is deprecated; use placement='solved'"),
+        "random": ("sampled", "placement='random' is deprecated; use placement='sampled'"),
+    }
+    name = str(name_or_strategy).lower()
+    if name in _DEPRECATED:
+        new_name, msg = _DEPRECATED[name]
+        warnings.warn(f"{msg}. The alias will be removed in 1.0.",
+                      DeprecationWarning, stacklevel=2)
+        name = new_name
+
+    if name == "solved":
+        return SolvedPlacement(overlap_tolerance=overlap_tolerance,
+                               surface_beta=surface_beta)
+    if name == "sampled":
+        return SampledPlacement(overlap_tolerance=overlap_tolerance)
+    if name == "constructed":
+        return ConstructedPlacement(overlap_tolerance=overlap_tolerance)
+    raise ValueError(
+        f"Unknown placement strategy: {name_or_strategy!r}. "
+        "Valid values: 'sampled', 'solved', 'constructed'."
+    )

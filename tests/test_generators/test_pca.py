@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 import pyFracAggregate as pfa
 
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+
 
 def test_pca_generation():
     agg = pfa.generate(n_particles=10, df=1.8, kf=1.3, method='pca')

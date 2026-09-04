@@ -26,8 +26,9 @@ from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
 from pyFracAggregate.generators.fracval import FracVALGenerator
 from pyFracAggregate.generators.tdcca import ThouyJullienGenerator
-from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
-from pyFracAggregate.generators.placement.random_ import RandomPlacement
+from pyFracAggregate.generators.placement.solved import SolvedPlacement
+from pyFracAggregate.generators.placement.sampled import SampledPlacement
+from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
 __version__ = "0.3.0"
 __author__ = "Fan Zhang"
@@ -39,7 +40,7 @@ def generate(
     method: str = 'pca',
     particle_dist = None,
     overlap_tolerance: float = 1e-5,
-    placement: str = 'algebraic',
+    placement: str = 'solved',
     **kwargs
 ) -> Aggregate:
     """
@@ -52,7 +53,7 @@ def generate(
         method (str): Algorithm to use ('pca', 'cca', 'fracval', 'tdcca').
         particle_dist: Particle radius distribution (defaults to Monodisperse(1.0)).
         overlap_tolerance (float): Allowed overlap between spheres.
-        placement (str): Placement strategy ('algebraic' or 'random').
+        placement (str): Placement strategy ('sampled', 'solved', or 'constructed').
 
     Returns:
         Aggregate: The generated fractal aggregate.
@@ -111,6 +112,7 @@ __all__ = [
     "CCAGenerator",
     "FracVALGenerator",
     "ThouyJullienGenerator",
-    "AlgebraicPlacement",
-    "RandomPlacement",
+    "SolvedPlacement",
+    "SampledPlacement",
+    "ConstructedPlacement",
 ]

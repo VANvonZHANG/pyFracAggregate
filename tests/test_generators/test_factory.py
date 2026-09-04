@@ -26,6 +26,7 @@ def test_removed_flage_cca_raises_helpful_error():
         pfa.generate(n_particles=10, df=1.8, kf=1.3, method='flage_cca')
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_placement_param_forwarded():
     agg = pfa.generate(n_particles=20, df=1.8, kf=1.3, method='pca', placement='random')
     assert agg.current_size == 20
