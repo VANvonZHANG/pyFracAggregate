@@ -123,14 +123,26 @@ until one aggregate remains. This mirrors diffusion-limited coagulation and
 its texture, at the cost of a more delicate merge criterion and, in some
 formulations, constraints on {math}`N`.
 
-The four methods split across the families: `pca` in the first; `cca`,
-`fracval`, and `tdcca` in the second.
+The two `method` values select the family: `pca` is the first; `cca` the
+second. Everything else — weighting and contact strategy — is the `scaling`
+and `placement` axes, so the classical named algorithms (Filippov CCA, FLAGE,
+FracVAL) are *coordinates* `(method, scaling, placement)` rather than separate
+methods.
 
-## The four methods
+## The coordinate system
+
+| Literature method | Coordinate |
+|---|---|
+| DLA-style PCA | `(pca, count, solved)` |
+| Filippov CCA (2000) | `(cca, count, sampled)` |
+| FLAGE-style CCA (Skorupski 2014) | `(cca, count, solved)` |
+| FracVAL (Morán 2019) | `(cca, mass, constructed)` |
 
 ### PCA — particle-cluster aggregation
 
-Selected with `pfa.generate(method='pca')`.
+Selected with `pfa.generate(method='pca')`. The `scaling` axis weights the
+per-step target: the count form (Filippov's original) is shown below, the
+mass form is its mass-weighted counterpart.
 
 **Principle.** From a seed particle, each subsequent particle {math}`n` is
 assigned a target sphere of radius {math}`L` about the cluster's geometric
@@ -152,12 +164,15 @@ with {math}`a` the mean primary radius.
 **Strengths.** Any {math}`N \geq 1`; cheapest method; exact per-step target
 for monodisperse primaries.
 
-**Limits.** The monodisperse form of the target degrades as {math}`\sigma_g`
-grows, and sequential attachment cannot build cluster-cluster texture.
+**Limits.** The count-weighted form of the target degrades as
+{math}`\sigma_g` grows (choose `scaling='mass'` for polydisperse primaries),
+and sequential attachment cannot build cluster-cluster texture.
 
 ### CCA — cluster-cluster aggregation
 
-Selected with `pfa.generate(method='cca')`.
+Selected with `pfa.generate(method='cca')`; the default `scaling='mass'`
+targets polydisperse primaries, `scaling='count'` reproduces Filippov's
+original number-weighted form shown here.
 
 **Principle** (Filippov et al., 2000). Small PCA clusters of five primaries
 are built first (the last absorbs any remainder), then merged pairwise;
@@ -179,9 +194,11 @@ coagulation; any {math}`N`; both {math}`D_f` and {math}`k_f` enter.
 **Limits.** {math}`\Gamma` is the number-weighted (monodisperse) form, so
 polydispersity is approximate; merge orientations are Monte Carlo samples.
 
-### FracVAL — tunable CCA for polydisperse primaries
+### The FracVAL coordinate — mass scaling + constructed contacts
 
-Selected with `pfa.generate(method='fracval')`.
+Selected with `pfa.generate(method='cca', scaling='mass',
+placement='constructed')` (the keyword `method='fracval'` is a deprecated
+alias for this coordinate).
 
 **Principle** (Morán et al., 2019). A tunable CCA redesigned for polydisperse
 primaries. The initial cluster size adapts to {math}`N` (5 primaries for
@@ -211,61 +228,46 @@ targeting; co-designed with numerical TEM image synthesis.
 **Limits.** The most compute-intensive method; occasionally falls back to
 random placement in tight merges.
 
-### TDCCA — Thouy & Jullien tunable CCA
+### TDCCA — removed in v0.4
 
-Selected with `pfa.generate(method='tdcca')`.
-
-**Principle** (Thouy & Jullien, 1994). Clusters merge in a binary tree,
-requiring {math}`N` to be a power of two. The separation target is not
-derived from {math}`k_f`; self-similarity of equal-size merges determines
-(Thouy & Jullien, Eqs. (11) and (12)):
-
-```{math}
-:label: eq-tj-gamma
-
-k^2 = 4 \left( 4^{1/D_f} - 1 \right),
-\qquad
-\Gamma^2 = k^2 \, \frac{R_{g,1}^2 + R_{g,2}^2}{2} + 1.
-```
-
-{math}`k` ensures that merging two equal clusters doubles {math}`N` while
-{math}`R_g` grows by {math}`2^{1/D_f}`; the additive constant (distances in
-Thouy & Jullien lattice units, where the lattice spacing equals one
-particle diameter) anchors the criterion at the dimer stage, where
-{math}`R_{g,1} = R_{g,2} = 0` and {math}`\Gamma^2 = +1` places the two
-monomers at touching distance.
-Each merge keeps, among random relative orientations, the configuration whose
-actual {math}`\Gamma^2` deviates least from the target. Here the initial
-dimers form along the 26 neighbor directions of a cubic lattice; coordinates
-remain continuous thereafter.
-
-**Strengths.** The classical tunable-dimension scheme, spanning roughly
-{math}`D_f = 1` to {math}`2.5` (hard spheres frustrate denser packing in 3D).
-
-**Limits.** {math}`N` must be a power of two; {math}`k_f` is accepted for
-constructor uniformity but does not enter the criterion — the prefactor
-emerges, it is not targeted.
+The Thouy & Jullien (1994) tunable CCA was **removed in v0.4**. The shipped
+implementation was a lattice-seeding/continuous-rotation hybrid that could
+not reproduce the paper's coordinates, and it ignored the `placement` axis
+entirely — an unfaithful port is worse than none. Pin `pyFracAggregate<0.4`
+if you depended on it, or reimplement from the paper (Thouy & Jullien, Eqs.
+(11)–(12)).
 
 ## Placement strategies
 
 The scaling law fixes where the center of the new object must lie (distance
 {math}`L` or {math}`\Gamma`) but not which particles touch. Resolving this
 contact problem without unwanted overlaps is the placement layer's job,
-selected with the `placement` argument of `pfa.generate`; it takes effect for
-`method='pca'` and `method='cca'` (`fracval` and `tdcca` embed their own
-contact logic).
+selected with the `placement` argument of `pfa.generate` (valid for both
+methods; `constructed` is merge-only and rejected for `pca`). The names
+describe how the contact comes to be:
 
-- **`placement='algebraic'` (default)** — FLAGE (Skorupski et al., 2014).
-  Intersecting the target sphere with a reference particle's contact sphere
-  yields a circle of exact touching points; candidates are overlap-filtered
-  and sampled, with a Monte Carlo fallback when no algebraic solution exists.
-  Contacts are near-exact and target distances are honored precisely.
-- **`placement='random'`** — Monte Carlo placement (Filippov et al., 2000).
-  Random directions and cluster orientations are sampled on the target
-  sphere; the first candidate whose minimum gap falls within tolerance is
-  accepted. The tolerance starts at {math}`10^{-3} a` and relaxes in
-  {math}`0.05\,a` steps so generation always terminates; the best candidate
-  is kept.
+- **`placement='solved'` (default)** — FLAGE (Skorupski et al., 2014). The
+  contact is *solved* in closed form: intersecting the target sphere with a
+  reference particle's contact sphere yields a circle of exact touching
+  points; candidates are overlap-filtered and sampled, with a Monte Carlo
+  fallback when no closed-form solution exists. Contacts are near-exact and
+  target distances are honored precisely.
+- **`placement='sampled'`** — Monte Carlo placement (Filippov et al., 2000).
+  The contact is *sampled*: random directions and cluster orientations are
+  tried on the target sphere; the first candidate whose minimum gap falls
+  within tolerance is accepted. The tolerance starts at {math}`10^{-3} a`
+  and relaxes in {math}`0.05\,a` steps so generation always terminates; the
+  best candidate is kept.
+- **`placement='constructed'`** — FracVAL contact construction (Morán et
+  al., 2019). The contact is *constructed*: a specific contact pair is
+  chosen from reachability across {math}`\Gamma`, the incoming cluster is
+  rotated into contact, residual overlaps are spun out about the contact
+  axis, and the center-of-mass separation is verified against
+  {math}`\Gamma` (Monte Carlo fallback otherwise). Cluster merging only.
+
+The pre-v0.4 names `'algebraic'` (→ `'solved'`) and `'random'` (→
+`'sampled'`) still resolve with a `DeprecationWarning` and will be removed
+in 1.0.
 
 `overlap_tolerance` sets the admissible interpenetration {math}`\delta`:
 contact becomes {math}`d_{ij} \geq r_i + r_j - \delta`, with default
@@ -282,56 +284,44 @@ the full signature.
 ```{list-table}
 :header-rows: 1
 
-* - Keyword
+* - Coordinate
   - Family
   - N flexibility
   - Polydispersity
   - Df targeting
-  - Constraints
   - Typical use
-* - `pca`
+* - `(pca, ·, ·)`
   - particle-cluster
   - any N ≥ 1
-  - approximate (mean radius)
+  - count approximate / mass exact per-step
   - per-step L, Filippov Eq. (10)
-  - none
   - fast baselines; parameter scans
-* - `cca`
+* - `(cca, count, ·)`
   - cluster-cluster
   - any N ≥ 1 (N ≤ 8 via PCA)
   - approximate (number-weighted Γ)
   - per-merge Γ, Filippov et al.
-  - none
   - monodisperse hierarchical structure
-* - `fracval`
+* - `(cca, mass, constructed)`
   - cluster-cluster
   - any N ≥ 1 (N ≤ 8 via PCA)
   - native (mass-weighted)
   - per-merge Γ, Morán Eqs. (3), (6)
-  - none
   - polydisperse soot models; numerical TEM
-* - `tdcca`
-  - cluster-cluster
-  - N = 2^p only
-  - supported (mass-weighted Rg)
-  - per-merge Γ², Thouy & Jullien Eqs. (11)–(12)
-  - power-of-two N; kf not targeted
-  - classical Df studies up to ≈ 2.5
 ```
 
 By downstream use:
 
 - **Light-scattering input:** `pca` for parameter scans at moderate
-  {math}`N`; `cca` or `fracval` when texture must be representative,
-  `fracval` if primaries are polydisperse.
-- **Numerical TEM images:** `fracval`, designed for exactly this pipeline.
+  {math}`N`; `cca` when texture must be representative, mass scaling if
+  primaries are polydisperse.
+- **Numerical TEM images:** `(cca, mass, constructed)`, designed for exactly
+  this pipeline.
 - **Population-balance initial conditions:** `pca` for cheap
-  small-{math}`N` samples; `cca` or `fracval` when morphology statistics
-  feed downstream kernels.
-- **Drag and mobility:** any method; keep `overlap_tolerance` small so the
-  geometry is a genuine hard-sphere packing.
-- **Reproducing Thouy & Jullien structures, or fixed power-of-two sizes:**
-  `tdcca`.
+  small-{math}`N` samples; `cca` when morphology statistics feed downstream
+  kernels.
+- **Drag and mobility:** any coordinate; keep `overlap_tolerance` small so
+  the geometry is a genuine hard-sphere packing.
 
 Whatever the choice, close the loop with
 [analyze()](/api-reference/index.md#analysis): compare `Df_estimated` with

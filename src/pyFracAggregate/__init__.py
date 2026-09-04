@@ -33,7 +33,7 @@ from pyFracAggregate.generators.placement.solved import SolvedPlacement
 from pyFracAggregate.generators.placement.sampled import SampledPlacement
 from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Fan Zhang"
 
 

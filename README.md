@@ -8,18 +8,21 @@
 
 A Python library for generating synthetic fractal aggregates — clusters of
 spherical primary particles with a tunable morphology, such as soot and other
-aerosols — unified across four classical generation algorithms behind one API,
-with built-in morphological analysis and export to common scientific formats.
+aerosols — behind one coordinate-system API: **method** × **scaling** ×
+**placement** select among the classical generation algorithms
+(particle-cluster and cluster-cluster aggregation, count- or mass-weighted
+scaling, three contact-placement strategies), with built-in morphological
+analysis and export to common scientific formats.
 
 ## Features
 
-- **Four generation algorithms, one API** — particle-cluster aggregation
-  (`'pca'`), cluster-cluster aggregation (`'cca'`), FracVAL (`'fracval'`), and
-  the Thouy & Jullien tunable CCA (`'tdcca'`), all selected with a single
-  `method=` keyword.
-- **Two placement strategies** — FLAGE-style algebraic touching-point
-  computation (default) or Monte Carlo random placement with tolerance
-  relaxation.
+- **Three orthogonal axes, one API** — `method` (`'pca'` | `'cca'`) ×
+  `scaling` (`'count'` | `'mass'`) × `placement` (`'solved'` | `'sampled'` |
+  `'constructed'`); every classical algorithm is a coordinate in this system.
+- **Three placement strategies** — closed-form tangency solving (default),
+  Monte Carlo sampling, or FracVAL-style contact construction.
+- **Reproducible generation** — pass `seed=` for bit-identical reruns of any
+  legal coordinate.
 - **Monodisperse and lognormal primary particles** — `Monodisperse` and
   `LognormalDistribution` size distributions feed any generator.
 - **Built-in morphology analysis** — radius of gyration, center of mass, pair
@@ -51,37 +54,43 @@ $ pip install -e ".[dev]"
 ## Quick start
 
 ```python
-import numpy as np
 import pyFracAggregate as pfa
 
-np.random.seed(0)
-agg = pfa.generate(200, 1.8, 1.9, method='pca')  # N=200, Df=1.8, kf=1.9
+agg = pfa.generate(200, 1.8, 1.9, method='pca', seed=0)  # N=200, Df=1.8, kf=1.9
 
-summary = pfa.analyze(agg)   # Rg=13.274 nm, Df_estimated=1.714, R2=0.964
-print(agg.current_size, summary['Df_estimated'])   # 200 1.714241520287105
+summary = pfa.analyze(agg)   # MorphologyReport
+print(agg.current_size, summary.df_est)   # 200 1.6126416651056448
 
 pfa.export_yaml(agg, 'aggregate.yaml')
 pfa.export_vtk(agg, 'aggregate.vtk')
 ```
 
-Generation is stochastic and draws from NumPy's global legacy random state:
-call `np.random.seed(...)` immediately before `pfa.generate(...)` for
-reproducible aggregates. The single-realization `Df_estimated` scatters
-around the requested `df`; average over realizations for ensemble statements.
+Generation is stochastic; pass `seed=` for reproducible aggregates (the
+global `numpy.random` state is never consulted). The single-realization
+`df_est` scatters around the requested `df`; average over realizations for
+ensemble statements.
 
-## Methods
+## The coordinate system
 
-| Keyword | Algorithm | Family | Polydispersity | Reference |
-|---|---|---|---|---|
-| [`pca`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#pca-particle-cluster-aggregation) | Particle-cluster aggregation | particle-cluster | approximate (mean radius) | Skorupski et al., 2014 |
-| [`cca`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#cca-cluster-cluster-aggregation) | Cluster-cluster aggregation | cluster-cluster | approximate (number-weighted) | Filippov et al., 2000 |
-| [`fracval`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#fracval-tunable-cca-for-polydisperse-primaries) | FracVAL tunable CCA | cluster-cluster | native (mass-weighted) | Morán et al., 2019 |
-| [`tdcca`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#tdcca-thouy-jullien-tunable-cca) | Thouy & Jullien tunable CCA | cluster-cluster | supported (mass-weighted Rg) | Thouy & Jullien, 1994 |
+Every classical aggregate algorithm is a coordinate in a three-axis system
+(`method`, `scaling`, `placement`):
 
-Each keyword links to the corresponding section of the
+| Literature method | `pyFracAggregate` coordinate |
+|---|---|
+| DLA-style PCA | `(pca, count, solved)` |
+| Filippov CCA (2000) | `(cca, count, sampled)` |
+| FLAGE-style CCA (Skorupski 2014) | `(cca, count, solved)` |
+| FracVAL (Morán 2019) | `(cca, mass, constructed)` |
+
+The two `method` families —
+[`pca`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#pca-particle-cluster-aggregation)
+(particle-cluster) and
+[`cca`](https://vanvonzhang.github.io/pyFracAggregate/background/index.html#cca-cluster-cluster-aggregation)
+(cluster-cluster) — are introduced in the
 [background chapter](https://vanvonzhang.github.io/pyFracAggregate/background/index.html)
 on the documentation site, which derives each algorithm's principle,
-guarantees, and limits.
+guarantees, and limits. `'fracval'` remains a deprecated alias for
+`(cca, mass, constructed)` until 1.0; `'tdcca'` was removed in v0.4.
 
 ## Documentation
 

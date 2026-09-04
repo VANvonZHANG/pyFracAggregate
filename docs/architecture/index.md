@@ -1,37 +1,40 @@
 # Architecture
 
 pyFracAggregate is a four-layer library: a **core** data structure
-(`Aggregate`, primary-particle distributions), a **generators** layer holding
-the four aggregation algorithms and their shared placement sublayer, an
-**analysis** layer computing morphological descriptors, and an **io** layer
-exporting aggregates. A thin top-level facade (`pfa.generate` /
-`pfa.analyze`) ties the layers together, and a factory function dispatches
-generation requests to one of the four algorithm classes.
+(`Aggregate`, primary-particle distributions, scaling laws), a **generators**
+layer holding the two aggregation algorithms, the shared scaling-law
+strategy, and their placement sublayer, an **analysis** layer computing
+morphological descriptors, and an **io** layer exporting aggregates. A thin
+top-level facade (`pfa.generate` / `pfa.analyze`) ties the layers together;
+a factory validates the three-axis coordinate
+(`method` × `scaling` × `placement`) and dispatches to a generator class.
+Every generator draws randomness from one seeded `numpy.random.Generator`,
+so any legal coordinate is reproducible with `seed=`.
 
 ```{mermaid}
 flowchart TB
     user(["user code"])
 
     facade["top-level facade<br/>generate() / analyze()"]
-    factory["generators/factory.py<br/>get_generator(method, ...)"]
+    factory["generators/factory.py<br/>get_generator: matrix validation<br/>method x scaling x placement"]
 
     subgraph GENLAYER ["generators/"]
-        BASE["BaseGenerator (ABC)"]
+        BASE["BaseGenerator (ABC)<br/>holds seeded np.random.Generator"]
         PCA["PCAGenerator"]
         CCA["CCAGenerator"]
-        FRACVAL["FracVALGenerator"]
-        TJ["ThouyJullienGenerator"]
         subgraph PLACE ["generators/placement/"]
             PABC["PlacementStrategy (ABC)"]
-            ALG["AlgebraicPlacement<br/>(FLAGE, default)"]
-            RND["RandomPlacement<br/>(Monte Carlo)"]
-            MC["_helpers.py<br/>shared Monte Carlo"]
+            SOLVED["SolvedPlacement<br/>(FLAGE, default)"]
+            SMP["SampledPlacement<br/>(Monte Carlo)"]
+            CONS["ConstructedPlacement<br/>(FracVAL contact pairs)"]
+            SOLV["solvers.py<br/>closed-form + MC primitives"]
         end
     end
 
     subgraph CORELAYER ["core/"]
         AGG["Aggregate<br/>pre-allocated (max_particles, 5)<br/>[x, y, z, radius, mass]"]
-        DIST["ParticleDistribution<br/>Monodisperse / LognormalDistribution"]
+        DIST["ParticleDistribution<br/>Monodisperse / Lognormal / FixedRadii"]
+        SCALE["core/scaling.py<br/>ScalingLaw: Count | Mass"]
     end
 
     subgraph ANALYSIS ["analysis/"]
@@ -46,22 +49,23 @@ flowchart TB
     end
 
     user --> facade
-    facade -->|"'method' keyword"| factory
+    facade -->|"coordinate + seed"| factory
     factory --> PCA
     factory --> CCA
-    factory --> FRACVAL
-    factory --> TJ
 
-    PCA & CCA & FRACVAL & TJ -.->|"subclass"| BASE
-    DIST -->|"sample() radii"| BASE
+    PCA & CCA -.->|"subclass"| BASE
+    DIST -->|"sample(n, rng) radii"| BASE
+    SCALE -->|"pca_step / cca_gamma"| BASE
     PCA -.->|"place_particle()"| PABC
     CCA -.->|"merge_clusters()"| PABC
-    PABC --> ALG
-    PABC --> RND
-    ALG --> MC
-    RND --> MC
+    PABC --> SOLVED
+    PABC --> SMP
+    PABC --> CONS
+    SOLVED --> SOLV
+    SMP --> SOLV
+    CONS --> SOLV
 
-    PCA & CCA & FRACVAL & TJ -->|"generate() returns"| AGG
+    PCA & CCA -->|"generate() returns"| AGG
 
     AGG --> MORPH
     AGG --> CORR
@@ -73,8 +77,9 @@ flowchart TB
     AGG --> VISIO
 ```
 
-Only `pca` and `cca` route through the placement sublayer; `fracval` and
-`tdcca` embed their own contact logic (see below).
+The scaling law (`core/scaling.py`) owns the parallel-axis target-distance
+equations once; the placement strategies are thin recipes over the shared
+contact primitives (`solvers.py`).
 
 ## The `Aggregate` data structure
 
@@ -108,7 +113,7 @@ Primary-particle sizes are supplied by a `ParticleDistribution` —
 
 ## The generator contract
 
-All four algorithms implement the abstract
+Both algorithms implement the abstract
 [`BaseGenerator`](/api-reference/index.md#generators) with a single
 constructor signature:
 
@@ -117,22 +122,27 @@ BaseGenerator(
     n_particles,        # target number of primary particles
     df, kf,             # fractal dimension and prefactor
     particle_dist,      # ParticleDistribution for primary radii
-    overlap_tolerance=0.0,
-    placement='algebraic',
-    # plus length_unit / mass_unit / density
+    overlap_tolerance=1e-5,
+    placement='solved', # 'sampled' | 'solved' | 'constructed' or instance
+    scaling=None,       # ScalingLaw instance or 'count'/'mass' (default mass)
+    seed=None,          # seed for the generator's np.random.Generator
+    # plus length_unit / mass_unit / density / surface_beta
 )
 ```
 
 `generate()` then returns a populated `Aggregate`. Because the contract is
 identical, the factory `get_generator(method, ...)` (in
-`generators/factory.py`) can dispatch on a string — `'pca'`, `'cca'`,
-`'fracval'`, `'tdcca'` — and that factory is exactly what the top-level
-`pfa.generate()` wraps. Keyword-only extras (`surface_beta`) are validated
-there and rejected for methods that do not support them.
+`generators/factory.py`) can dispatch on a string — `'pca'` or `'cca'`,
+with `'fracval'` a deprecated alias for `(cca, mass, constructed)` — after
+validating the legality matrix (e.g. `pca` rejects `constructed`, which is
+merge-only). That factory is exactly what the top-level `pfa.generate()`
+wraps. Keyword-only extras (`surface_beta`) are validated there and
+rejected for placements that do not support them.
 
 `pfa.analyze()` is the facade's read-side: it bundles
-`radius_of_gyration`, `center_of_mass`, and the pair-correlation fit into
-one summary dict (`Rg`, `CoM`, `N`, `Df_estimated`, `R2`).
+`radius_of_gyration`, `center_of_mass`, and the pair-correlation fit into a
+typed `MorphologyReport` (`rg`, `df_est`, `r2`, `r_centers`,
+`pair_correlation`, `com`, `n`).
 
 ## The placement strategy layer
 
@@ -145,27 +155,28 @@ object, selected by name:
   abstract methods mirror the two aggregation stages: `place_particle()`
   (single particle onto a cluster, the PCA stage) and `merge_clusters()`
   (two clusters onto a common `Γ`, the CCA stage).
-- `AlgebraicPlacement` (default) — FLAGE, Skorupski et al. (2014). The
-  analytical solver in `generators/optimizer_flage.py` intersects the target
-  sphere with a reference particle's contact sphere to get exact touching
-  points; candidates are overlap-filtered, with a Monte Carlo fallback.
-- `RandomPlacement` — Filippov et al. (2000). Pure Monte Carlo sampling on
+- `SolvedPlacement` (default) — FLAGE, Skorupski et al. (2014). The closed
+  form `solve_tangency` intersects the target sphere with a reference
+  particle's contact sphere to get exact touching points; candidates are
+  overlap-filtered, with a Monte Carlo fallback.
+- `SampledPlacement` — Filippov et al. (2000). Pure Monte Carlo sampling on
   the target sphere with gradual tolerance relaxation until a candidate is
   accepted (typically several times slower).
-- `get_placement(name)` — the factory. `BaseGenerator.__init__` resolves the
-  `placement` string through it and stores the strategy instance, injecting
-  the generator's `overlap_tolerance` into it.
+- `ConstructedPlacement` — Morán et al. (2019). A contact pair is selected
+  from reachability across `Γ`; the incoming cluster is rotated into
+  contact, residual overlaps spun out about the contact axis, and the COM
+  separation verified. PCA-stage placement is unsupported (raises).
+- `get_placement(name_or_strategy, ...)` — the factory, accepting names
+  (with the deprecated `'algebraic'`/`'random'` aliases) or instances
+  (pandas-style). `BaseGenerator.__init__` resolves through it, passing the
+  generator's `overlap_tolerance` and its seeded `Generator`.
 
-Both implementations share their Monte Carlo machinery
-(`random_monte_carlo_place`, `random_monte_carlo_merge`) through
-`generators/placement/_helpers.py`, so the strategies differ only in their
-deterministic precomputation, not in their fallbacks.
-
-`FracVALGenerator` and `ThouyJullienGenerator` do **not** route through the
-placement layer: FracVAL's merge has its own deterministic contact search
-(sphere-sphere intersection with overlap-resolving rotations), and Thouy &
-Jullien selects among lattice-seeded orientations directly. The `placement`
-argument is accepted for constructor uniformity but ignored by both.
+All strategies share their contact primitives through
+`generators/placement/solvers.py` (`solve_tangency`, `mc_touch_place`,
+`mc_touch_merge`), so they differ only in their recipe, not in their
+primitives. The former `FracVALGenerator` merge *is*
+`ConstructedPlacement`; there is no generator-specific contact logic left
+outside the placement layer.
 
 ## Analysis
 
@@ -193,12 +204,14 @@ notes.
 The test suite mirrors the source layout:
 
 - `tests/test_core/` — `Aggregate`, distributions, 3D math helpers
-- `tests/test_generators/` — the four algorithms, factory, placement
-  strategies, FLAGE optimizer
-- `tests/test_analysis/` — morphology and correlation functions
+- `tests/test_generators/` — both algorithms, factory + legality matrix,
+  placement strategies, solvers, scaling laws, v0.3.0 regression anchors
+- `tests/test_analysis/` — morphology, correlation, MorphologyReport
 - `tests/test_io/` — YAML and visualization exports
 - `tests/test_density.py` — root-level density test
-- `tests/fixtures/` — shared fixture data (`surface_beta_snapshot.npy`)
+- `tests/test_compat_aliases.py` — deprecated-alias equivalence (T4/T8)
+- `tests/test_seed_reproducibility.py` — seed determinism (T5)
+- `tests/fixtures/` — shared fixture data (v0.3.0 baseline snapshots)
 
 Slow performance tests carry the `benchmark` pytest marker and can be
 deselected with `-m "not benchmark"` (see

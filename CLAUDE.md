@@ -22,23 +22,26 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 
 ### Core (`src/pyFracAggregate/core/`)
 - **Aggregate**: Central data structure. Pre-allocated `(max_particles, 5)` NumPy array storing `[x, y, z, radius, mass]`. Properties `positions`, `radii`, `masses` return zero-copy views into the backing array.
-- **ParticleDistribution**: ABC with `Monodisperse(radius)` and `LognormalDistribution(mean, std)` implementations. Generators call `sample(n)` to get particle sizes.
+- **ParticleDistribution**: ABC with `Monodisperse(radius)`, `LognormalDistribution(mean, std)` and `FixedRadii(radii)` implementations. Generators call `sample(n, rng=None)` to get particle sizes.
 
 ### Generators (`src/pyFracAggregate/generators/`)
-- **BaseGenerator**: ABC accepting `(n_particles, df, kf, particle_dist, overlap_tolerance, placement='algebraic')`. All generators produce an `Aggregate` via `generate()`.
-- **Factory**: `get_generator(method, ...)` dispatches to:
+- **BaseGenerator**: ABC accepting `(n_particles, df, kf, particle_dist, overlap_tolerance=1e-5, placement='solved', scaling=None, seed=None, surface_beta=None, rng=None)`. Holds the seeded `np.random.Generator` (`self.rng`); all generators produce an `Aggregate` via `generate()`.
+- **Factory**: `get_generator(method, ...)` validates the legality matrix (10 legal `method`×`scaling`×`placement` cells; `pca×constructed` raises) then dispatches:
   - `'pca'` → `PCAGenerator` — particle-cluster aggregation
   - `'cca'` → `CCAGenerator` — cluster-cluster aggregation
-  - `'fracval'` → `FracVALGenerator` — FracVAL algorithm
-  - `'tdcca'` → `ThouyJullienGenerator` — Thouy & Jullien (1994) algorithm
-- All generators share the same constructor signature from `BaseGenerator`.
+  - `'fracval'` → deprecated alias for `(cca, mass, constructed)`; `'tdcca'` removed in v0.4
+
+#### Scaling laws (`src/pyFracAggregate/core/scaling.py`)
+- **ScalingLaw** ABC: `weights()`, `char_radius()`, `target_rg_sq()`, `pca_step()`, `cca_gamma()`.
+- **CountScaling** (Filippov 2000 count weights) / **MassScaling** (Morán 2019 mass weights; default). `get_scaling(name_or_law, df, kf)` accepts names or instances. Monodisperse: the two are mathematically equivalent.
 
 #### Placement Strategy Layer (`src/pyFracAggregate/generators/placement/`)
 - **PlacementStrategy** ABC with `place_particle()` (PCA stage) and `merge_clusters()` (CCA stage).
-- **AlgebraicPlacement** (FLAGE, Skorupski et al., 2014): Algebraic touching-point computation with random Monte Carlo fallback. Default strategy.
-- **RandomPlacement** (Filippov et al., 2000): Pure random Monte Carlo sampling with tolerance relaxation.
-- **`get_placement(name)`** factory returns a `PlacementStrategy` by name (`'algebraic'` or `'random'`).
-- **`_helpers.py`**: Shared Monte Carlo helpers (`random_monte_carlo_place`, `random_monte_carlo_merge`) used by both strategies.
+- **SolvedPlacement** (FLAGE, Skorupski et al., 2014): closed-form tangency solving with Monte Carlo fallback. Default.
+- **SampledPlacement** (Filippov et al., 2000): pure Monte Carlo sampling with tolerance relaxation.
+- **ConstructedPlacement** (Morán et al., 2019): specified contact pair + attitude construction + COM check (merge-only; the old FracVAL merge logic lives here).
+- **`get_placement(name_or_strategy, ...)`** factory returns a `PlacementStrategy` by name (`'sampled'`/`'solved'`/`'constructed'`; deprecated aliases `'algebraic'`→solved, `'random'`→sampled) or passes instances through.
+- **`solvers.py`**: shared contact primitives (`solve_tangency`, `filter_overlapping_candidates`, `build_particle_list_pca`, `mc_touch_place`, `mc_touch_merge`) used by all strategies.
 
 ### Analysis (`src/pyFracAggregate/analysis/`)
 - `morphology`: `radius_of_gyration()`, `center_of_mass()`
@@ -49,10 +52,10 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 - **vtk.py**: `export_vtm()` (MultiBlock) and `export_vtk()` (point cloud) via pyvista
 
 ### Top-level API (`__init__.py`)
-`pfa.generate(n_particles, df, kf, method, placement='algebraic')` and `pfa.analyze(aggregate)` are the primary entry points. `generate()` delegates to the factory. The `placement` parameter selects the placement strategy (`'algebraic'` or `'random'`). IO exports include `export_yaml()` (full snapshot), `export_vtk()` (point cloud), and `export_vtm()` (MultiBlock).
+`pfa.generate(n_particles, df, kf, method='pca', scaling='mass', placement='solved', particle_dist=None, overlap_tolerance=1e-5, seed=None)` and `pfa.analyze(aggregate)` (returns the `MorphologyReport` dataclass) are the primary entry points. `generate()` delegates to the factory after matrix validation. Generation is reproducible via `seed=` (private `np.random.Generator`; the global NumPy RNG is never consulted). IO exports include `export_yaml()` (full snapshot; accepts a `MorphologyReport` and serializes legacy key names), `export_vtk()` (point cloud), and `export_vtm()` (MultiBlock).
 
 ## Key Conventions
-- Python 3.9+, type hints throughout
+- Python 3.13+, type hints throughout; `ruff check src/` and `mypy src/` clean
 - Physical units (`length_unit`, `mass_unit`, `density`) are part of `Aggregate` and `BaseGenerator`
 - `mathutils` package used for 3D math (with scipy fallback)
 - Tests live in `tests/` mirroring the source layout (`test_core/`, `test_generators/`, `test_analysis/`, `test_io/`)
