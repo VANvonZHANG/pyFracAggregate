@@ -66,6 +66,15 @@ class TestMassScaling:
         assert mass[1] == pytest.approx(count[1], rel=1e-12)
         assert np.allclose(mass[0], count[0], rtol=1e-12, atol=1e-12)
 
+    def test_pca_step_uses_new_particle_mass(self):
+        # Polydisperse semantics: a heavier incoming particle sits closer to
+        # the mass-weighted center than a lighter one (parallel-axis split).
+        agg = _agg([[0, 0, 0], [2, 0, 0]])
+        radii = np.ones(3)
+        _, light = MassScaling(1.8, 1.3).pca_step(agg, 1.0, 1.0 * MASS, radii)
+        _, heavy = MassScaling(1.8, 1.3).pca_step(agg, 1.0, 8.0 * MASS, radii)
+        assert light != heavy
+
     def test_cca_gamma_matches_fracval_expression(self):
         agg1 = _agg([[0, 0, 0], [2, 0, 0], [0, 2, 0]])
         agg2 = _agg([[0, 0, 0], [2, 0, 0]])

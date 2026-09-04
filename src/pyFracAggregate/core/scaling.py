@@ -110,11 +110,11 @@ class MassScaling(ScalingLaw):
     def pca_step(self, agg: Aggregate, r_new: float, m_new: float,
                  all_radii: np.ndarray) -> tuple[np.ndarray, float]:
         # Two-body parallel-axis with mass weights, structured to reduce to
-        # CountScaling for monodisperse input: the new particle is the
-        # reference weight unit (w2 == 1), matching the count equation's
-        # intrinsic a^2 term.
+        # CountScaling for monodisperse input: the new particle's weight is
+        # referenced to the first particle's mass (w2 == 1 exactly when all
+        # masses are equal), matching the count equation's intrinsic a^2 term.
         w1 = float(np.sum(self.weights(agg)))
-        w2 = 1.0
+        w2 = float(m_new / agg.masses[0])
         w = w1 + w2
         a = np.mean(all_radii)
         rg_target_sq = a**2 * (w / self.kf) ** (2.0 / self.df)
