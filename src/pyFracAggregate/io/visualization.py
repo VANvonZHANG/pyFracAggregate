@@ -188,10 +188,14 @@ def save_rotation_video(
         aggregate, color=color, opacity=opacity, color_by=color_by,
         cmap=cmap, background=background, window_size=window_size,
     )
-    writer = imageio.get_writer(
-        path, fps=fps,
-        format="FFMPEG",  # type: ignore[arg-type]  # imageio stub quirk
-    )
+    try:
+        writer = imageio.get_writer(
+            path, fps=fps,
+            format="FFMPEG",  # type: ignore[arg-type]  # imageio stub quirk
+        )
+    except Exception:
+        plotter.close()
+        raise
     try:
         bounds = plotter.bounds
         center = np.array([

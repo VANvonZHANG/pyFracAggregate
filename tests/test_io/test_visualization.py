@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import pyFracAggregate as pfa
+from pyFracAggregate.io import visualization as viz
 from pyFracAggregate.io.visualization import (
     _build_plotter,
     _framing_distance,
@@ -169,3 +170,33 @@ class TestSaveRotationVideo:
         path = str(tmp_path / "rotation.mp4")
         with pytest.raises(ImportError, match="imageio"):
             save_rotation_video(small_aggregate, path)
+
+    def test_writer_creation_failure_closes_plotter(
+        self, small_aggregate, tmp_path, monkeypatch
+    ):
+        import imageio.v2 as imageio
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("no ffmpeg plugin")
+
+        monkeypatch.setattr(imageio, "get_writer", _boom)
+
+        closed = []
+        real_build = viz._build_plotter
+
+        def spy_build(aggregate, **kwargs):
+            plotter = real_build(aggregate, **kwargs)
+            orig_close = plotter.close
+
+            def _record_close():
+                closed.append(True)
+                orig_close()
+
+            plotter.close = _record_close  # type: ignore[method-assign]
+            return plotter
+
+        monkeypatch.setattr(viz, "_build_plotter", spy_build)
+        path = str(tmp_path / "rotation.mp4")
+        with pytest.raises(RuntimeError, match="ffmpeg"):
+            save_rotation_video(small_aggregate, path)
+        assert closed == [True]
