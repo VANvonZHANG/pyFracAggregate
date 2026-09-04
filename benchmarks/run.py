@@ -18,18 +18,17 @@ from benchmarks.metrics import evaluate_run
 
 # rough per-run seconds for --dry-run estimates: (method, placement) -> {N: s}
 _COST = {
-    ("pca", "algebraic"): {50: 0.4, 100: 1.0, 500: 15.0, 1024: 90.0},
-    ("pca", "random"): {50: 1.0, 100: 2.5, 500: 40.0, 1024: 250.0},
-    ("cca", "algebraic"): {50: 2.0, 100: 7.5, 500: 90.0, 1024: 450.0},
-    ("cca", "random"): {50: 3.0, 100: 10.0, 500: 120.0, 1024: 600.0},
-    ("fracval", "algebraic"): {100: 5.0, 400: 21.0, 500: 25.0, 1024: 150.0},
-    ("tdcca", "algebraic"): {128: 0.1, 512: 0.5, 1024: 2.0},
+    ("pca", "solved"): {50: 0.4, 100: 1.0, 500: 15.0, 1024: 90.0},
+    ("pca", "sampled"): {50: 1.0, 100: 2.5, 500: 40.0, 1024: 250.0},
+    ("cca", "solved"): {50: 2.0, 100: 7.5, 500: 90.0, 1024: 450.0},
+    ("cca", "sampled"): {50: 3.0, 100: 10.0, 500: 120.0, 1024: 600.0},
+    ("cca", "constructed"): {16: 0.2, 100: 5.0, 400: 21.0, 500: 25.0, 1024: 150.0},
 }
 
 TINY_GRID = [  # test-only grid, ~1 s total
-    {"exp": 1, "method": "pca", "placement": "algebraic", "beta": None,
+    {"exp": 1, "method": "pca", "placement": "solved", "beta": None,
      "N": 20, "df": 1.8, "kf": 1.3, "sg": 1.0, "seed": 0},
-    {"exp": 1, "method": "tdcca", "placement": "algebraic", "beta": None,
+    {"exp": 1, "method": "cca", "placement": "constructed", "beta": None,
      "N": 16, "df": 1.8, "kf": 1.3, "sg": 1.0, "seed": 0},
 ]
 
@@ -82,10 +81,11 @@ def execute(rows, csv_path, tier, max_minutes=None):
                                      ("exp", "method", "placement", "beta",
                                       "N", "df", "kf", "sg", "seed")})
             try:
-                np.random.seed(row["seed"])
-                kwargs = {}
+                kwargs = {"seed": row["seed"]}
                 if row["beta"] is not None:
                     kwargs["surface_beta"] = row["beta"]
+                if row["placement"] == "constructed":
+                    kwargs["scaling"] = "mass"
                 t1 = time.perf_counter()
                 agg = pfa.generate(
                     n_particles=row["N"], df=row["df"], kf=row["kf"],
@@ -126,7 +126,7 @@ def main():
                     help="full tier: also random placement at N=1024")
     args = ap.parse_args()
     if args.probe:
-        rows = [{"exp": 1, "method": "cca", "placement": "algebraic",
+        rows = [{"exp": 1, "method": "cca", "placement": "solved",
                  "beta": None, "N": 1024, "df": 1.8, "kf": 1.3,
                  "sg": 1.0, "seed": 0}]
         tier = "probe"

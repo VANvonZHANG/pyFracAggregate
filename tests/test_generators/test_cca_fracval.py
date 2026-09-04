@@ -3,6 +3,8 @@ import numpy as np
 
 import pyFracAggregate as pfa
 
+pytestmark = pytest.mark.filterwarnings("ignore:method='fracval':DeprecationWarning")
+
 def test_cca_fracval_generation():
     # Test polydisperse generation using the FracVAL method
     dist = pfa.LognormalDistribution(mean=1.0, std=1.2)

@@ -9,8 +9,11 @@ function, fractal-dimension estimation) and export to YAML, VTK/VTM, rendered
 images, and rotation videos.
 """
 
+from typing import Literal
+
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
+from pyFracAggregate.core.distributions import ParticleDistribution
 from pyFracAggregate.generators.factory import get_generator
 from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution
 from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
@@ -37,11 +40,13 @@ def generate(
     n_particles: int,
     df: float,
     kf: float,
-    method: str = 'pca',
-    particle_dist = None,
+    method: Literal["pca", "cca"] = "pca",
+    scaling: Literal["count", "mass"] = "mass",
+    placement: Literal["sampled", "solved", "constructed"] = "solved",
+    particle_dist: ParticleDistribution | None = None,
     overlap_tolerance: float = 1e-5,
-    placement: str = 'solved',
-    **kwargs
+    seed: int | None = None,
+    **kwargs,
 ) -> Aggregate:
     """
     High-level API to generate a fractal aggregate.
@@ -50,10 +55,17 @@ def generate(
         n_particles (int): Target number of particles.
         df (float): Fractal dimension (typically 1.5 - 2.5).
         kf (float): Fractal prefactor (typically 1.0 - 2.0).
-        method (str): Algorithm to use ('pca', 'cca', 'fracval', 'tdcca').
+        method (str): Algorithm family: 'pca' (particle-cluster) or
+            'cca' (cluster-cluster). 'fracval' is a deprecated alias for
+            (cca, mass, constructed).
+        scaling (str): 'count' (Filippov 2000 count weighting) or 'mass'
+            (Moran 2019 mass weighting; polydispersity-correct). Default 'mass'.
+        placement (str): 'sampled' (Monte Carlo), 'solved' (closed-form
+            tangency; default), or 'constructed' (FracVAL contact
+            construction; cca only).
         particle_dist: Particle radius distribution (defaults to Monodisperse(1.0)).
         overlap_tolerance (float): Allowed overlap between spheres.
-        placement (str): Placement strategy ('sampled', 'solved', or 'constructed').
+        seed (int): Seed for reproducible generation (None = fresh entropy).
 
     Returns:
         Aggregate: The generated fractal aggregate.
@@ -66,9 +78,11 @@ def generate(
         n_particles=n_particles,
         df=df,
         kf=kf,
+        scaling=scaling,
+        placement=placement,
         particle_dist=particle_dist,
         overlap_tolerance=overlap_tolerance,
-        placement=placement,
+        seed=seed,
         **kwargs
     )
 

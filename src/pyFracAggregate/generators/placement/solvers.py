@@ -140,13 +140,14 @@ def mc_touch_place(
     L: float,
     mean_radius: float,
     overlap_tolerance: float,
+    rng: np.random.Generator,
 ) -> tuple | None:
     """Random Monte Carlo placement on the Gamma sphere with tolerance relaxation."""
     max_attempts = 10000
     tolerance = 1e-3 * mean_radius
 
     for attempt in range(max_attempts):
-        u = np.random.normal(size=3)
+        u = rng.normal(size=3)
         norm_u = np.linalg.norm(u)
         if norm_u < 1e-8:
             continue
@@ -166,9 +167,9 @@ def mc_touch_place(
             tolerance += 0.05 * mean_radius
 
     # Extreme fallback
-    idx = np.random.randint(agg.current_size)
+    idx = rng.integers(agg.current_size)
     ref_pos = agg.positions[idx]
-    u = np.random.normal(size=3)
+    u = rng.normal(size=3)
     norm_u = np.linalg.norm(u)
     if norm_u < 1e-8:
         u = np.array([1.0, 0.0, 0.0])
@@ -186,6 +187,7 @@ def mc_touch_merge(
     Gamma: float,
     mean_radius: float,
     overlap_tolerance: float,
+    rng: np.random.Generator,
     track_best: bool = False,
     max_attempts: int = 20000,
 ) -> np.ndarray:
@@ -206,14 +208,14 @@ def mc_touch_merge(
     candidate_pos2 = None
 
     for attempt in range(max_attempts):
-        u = np.random.normal(size=3)
+        u = rng.normal(size=3)
         norm_u = np.linalg.norm(u)
         if norm_u < 1e-8:
             continue
         u /= norm_u
         new_com2 = Gamma * u
 
-        euler_angles = np.random.uniform(0, 2 * np.pi, size=3)
+        euler_angles = rng.uniform(0, 2 * np.pi, size=3)
         pos2_rotated = rotate_points(pos2_centered, tuple(euler_angles))
         candidate_pos2 = pos2_rotated + new_com2
 

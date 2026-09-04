@@ -21,11 +21,11 @@ class CCAGenerator(BaseGenerator):
                 self.n_particles, self.df, self.kf, self.particle_dist,
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
                 self.density, scaling=CountScaling(self.df, self.kf),
-                placement=self._seed_placement()
+                placement=self._seed_placement(), rng=self.rng
             )
             return pca_gen.generate()
 
-        radii = self.particle_dist.sample(self.n_particles)
+        radii = self.particle_dist.sample(self.n_particles, rng=self.rng)
 
         # FracVAL cluster schedule (Moran 2019) for constructed merges;
         # fixed small clusters otherwise (deviation N4).
@@ -49,7 +49,7 @@ class CCAGenerator(BaseGenerator):
                 FixedRadii(radii[idx:idx + curr_size]),
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
                 self.density, scaling=CountScaling(self.df, self.kf),
-                placement=self._seed_placement()
+                placement=self._seed_placement(), rng=self.rng
             )
             sub_agg = local_pca.generate()
             cluster_list.append(sub_agg)

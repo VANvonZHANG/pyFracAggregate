@@ -67,6 +67,7 @@ def get_placement(
     *,
     overlap_tolerance: float = 1e-5,
     surface_beta: float = 0.3,
+    rng: "np.random.Generator | None" = None,
 ) -> PlacementStrategy:
     """Factory for placement strategies.
 
@@ -79,6 +80,7 @@ def get_placement(
         name_or_strategy: Strategy name or instance.
         overlap_tolerance: Allowed interpenetration between sphere surfaces.
         surface_beta: Surface-particle filter fraction (solved only).
+        rng: Random generator threaded from the owning generator.
 
     Raises:
         ValueError: If the name is not recognized.
@@ -103,11 +105,11 @@ def get_placement(
 
     if name == "solved":
         return SolvedPlacement(overlap_tolerance=overlap_tolerance,
-                               surface_beta=surface_beta)
+                               surface_beta=surface_beta, rng=rng)
     if name == "sampled":
-        return SampledPlacement(overlap_tolerance=overlap_tolerance)
+        return SampledPlacement(overlap_tolerance=overlap_tolerance, rng=rng)
     if name == "constructed":
-        return ConstructedPlacement(overlap_tolerance=overlap_tolerance)
+        return ConstructedPlacement(overlap_tolerance=overlap_tolerance, rng=rng)
     raise ValueError(
         f"Unknown placement strategy: {name_or_strategy!r}. "
         "Valid values: 'sampled', 'solved', 'constructed'."

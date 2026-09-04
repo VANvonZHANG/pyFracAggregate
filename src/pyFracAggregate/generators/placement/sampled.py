@@ -7,8 +7,10 @@ from pyFracAggregate.generators.placement.solvers import mc_touch_merge, mc_touc
 class SampledPlacement(PlacementStrategy):
     """Emergent contact via Monte Carlo sampling (Filippov et al., 2000)."""
 
-    def __init__(self, overlap_tolerance: float = 1e-5):
+    def __init__(self, overlap_tolerance: float = 1e-5,
+                 rng: "np.random.Generator | None" = None):
         self.overlap_tolerance = overlap_tolerance
+        self.rng = rng if rng is not None else np.random.default_rng()
 
     def place_particle(
         self,
@@ -20,7 +22,7 @@ class SampledPlacement(PlacementStrategy):
         mean_radius: float,
     ) -> tuple | None:
         return mc_touch_place(agg, candidate_radius, geom_center, L,
-                              mean_radius, self.overlap_tolerance)
+                              mean_radius, self.overlap_tolerance, self.rng)
 
     def merge_clusters(
         self,
@@ -34,4 +36,4 @@ class SampledPlacement(PlacementStrategy):
         mean_radius: float,
     ) -> np.ndarray:
         return mc_touch_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius,
-                              self.overlap_tolerance, track_best=True)
+                              self.overlap_tolerance, self.rng, track_best=True)

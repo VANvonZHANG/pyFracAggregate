@@ -13,8 +13,10 @@ class ConstructedPlacement(PlacementStrategy):
     """Specified contact pair + attitude construction + COM correction
     (Moran et al., 2019, FracVAL sub-steps b-d)."""
 
-    def __init__(self, overlap_tolerance: float = 1e-5):
+    def __init__(self, overlap_tolerance: float = 1e-5,
+                 rng: "np.random.Generator | None" = None):
         self.overlap_tolerance = overlap_tolerance
+        self.rng = rng if rng is not None else np.random.default_rng()
 
     def place_particle(
         self,
@@ -50,10 +52,10 @@ class ConstructedPlacement(PlacementStrategy):
 
         if len(contact_pairs) == 0:
             return mc_touch_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius,
-                                  self.overlap_tolerance, track_best=True,
-                                  max_attempts=50000)
+                                  self.overlap_tolerance, self.rng,
+                                  track_best=True, max_attempts=50000)
 
-        np.random.shuffle(contact_pairs)
+        self.rng.shuffle(contact_pairs)
         max_pair_attempts = min(len(contact_pairs), 50)
 
         for pair_idx in range(max_pair_attempts):
@@ -71,11 +73,11 @@ class ConstructedPlacement(PlacementStrategy):
             if cp_result is not None:
                 cc, cr = cp_result
                 if cr > 1e-10:
-                    cm2_pos = random_point_on_circle(cc, cr, si_direction)
+                    cm2_pos = random_point_on_circle(cc, cr, si_direction, rng=self.rng)
                 else:
                     cm2_pos = cc
             else:
-                u = np.random.normal(size=3)
+                u = self.rng.normal(size=3)
                 u /= np.linalg.norm(u)
                 cm2_pos = Gamma * u
 
@@ -115,7 +117,7 @@ class ConstructedPlacement(PlacementStrategy):
                 contact_axis = si_direction
                 resolved = False
                 for _ in range(25):
-                    rand_angle = np.random.uniform(0, 2 * np.pi)
+                    rand_angle = self.rng.uniform(0, 2 * np.pi)
                     pos2_rotated = euler_rodrigues_rotation(
                         pos2_aligned, contact_axis, rand_angle
                     )
@@ -144,5 +146,5 @@ class ConstructedPlacement(PlacementStrategy):
             return pos2_final
 
         return mc_touch_merge(pos1, r1, pos2_centered, r2, Gamma, mean_radius,
-                              self.overlap_tolerance, track_best=True,
-                              max_attempts=50000)
+                              self.overlap_tolerance, self.rng,
+                              track_best=True, max_attempts=50000)

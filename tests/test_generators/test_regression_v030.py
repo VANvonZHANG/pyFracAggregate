@@ -10,7 +10,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::DeprecationWarning"),
+    pytest.mark.skip(reason="superseded by test_anchors.py after the seed/RNG "
+                            "switch (plan deviation N9)"),
+]
 
 import pyFracAggregate as pfa
 

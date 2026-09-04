@@ -90,8 +90,8 @@ def _two_cluster_set():
 
 def test_mc_touch_place_finds_contact():
     agg1, _ = _two_cluster_set()
-    np.random.seed(1)
-    result = mc_touch_place(agg1, 1.0, np.zeros(3), 4.0, 1.0, 1e-5)
+    rng = np.random.default_rng(1)
+    result = mc_touch_place(agg1, 1.0, np.zeros(3), 4.0, 1.0, 1e-5, rng)
     assert result is not None and len(result) == 3
     pos = np.asarray(result)
     assert np.linalg.norm(pos) == pytest.approx(4.0, abs=1e-9)
@@ -99,15 +99,15 @@ def test_mc_touch_place_finds_contact():
 
 def test_mc_touch_merge_returns_valid_shape():
     agg1, agg2 = _two_cluster_set()
-    np.random.seed(1)
+    rng = np.random.default_rng(1)
     out = mc_touch_merge(agg1.positions, agg1.radii, agg2.positions, agg2.radii,
-                         5.0, 1.0, 1e-5)
+                         5.0, 1.0, 1e-5, rng)
     assert out is not None and out.shape == (3, 3)
 
 
 def test_mc_touch_merge_track_best_never_returns_none():
     agg1, agg2 = _two_cluster_set()
-    np.random.seed(1)
+    rng = np.random.default_rng(1)
     out = mc_touch_merge(agg1.positions, agg1.radii, agg2.positions, agg2.radii,
-                         5.0, 1.0, 1e-5, track_best=True, max_attempts=100)
+                         5.0, 1.0, 1e-5, rng, track_best=True, max_attempts=100)
     assert out is not None and out.shape == (3, 3)

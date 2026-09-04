@@ -15,9 +15,11 @@ class SolvedPlacement(PlacementStrategy):
     """Emergent contact via closed-form tangency solving (Skorupski et al.,
     2014, FLAGE), with Monte Carlo fallback."""
 
-    def __init__(self, overlap_tolerance: float = 1e-5, surface_beta: float = 0.3):
+    def __init__(self, overlap_tolerance: float = 1e-5, surface_beta: float = 0.3,
+                 rng: "np.random.Generator | None" = None):
         self.overlap_tolerance = overlap_tolerance
         self.surface_beta = surface_beta
+        self.rng = rng if rng is not None else np.random.default_rng()
 
     def place_particle(
         self,
@@ -32,7 +34,7 @@ class SolvedPlacement(PlacementStrategy):
         candidate_list = build_particle_list_pca(agg.positions, agg.radii, L, mean_radius)
 
         if len(candidate_list) > 0:
-            np.random.shuffle(candidate_list)
+            self.rng.shuffle(candidate_list)
             max_ref = min(5, len(candidate_list))
             for i in range(max_ref):
                 ref_idx = candidate_list[i % len(candidate_list)]
@@ -49,12 +51,13 @@ class SolvedPlacement(PlacementStrategy):
                     candidates, agg.positions, agg.radii, candidate_radius, self.overlap_tolerance
                 )
                 if len(valid) > 0:
-                    pt = valid[np.random.randint(len(valid))]
+                    pt = valid[self.rng.integers(len(valid))]
                     return (pt[0], pt[1], pt[2])
 
         # Fallback: random Monte Carlo
         return mc_touch_place(
-            agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
+            agg, candidate_radius, geom_center, L, mean_radius,
+            self.overlap_tolerance, self.rng
         )
 
     def merge_clusters(
@@ -77,7 +80,8 @@ class SolvedPlacement(PlacementStrategy):
 
         if D1_max + D2_max < Gamma:
             return mc_touch_merge(
-                pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+                pos1, r1, pos2_centered, r2, Gamma, mean_radius,
+                self.overlap_tolerance, self.rng
             )
 
         dists1 = np.linalg.norm(pos1, axis=1)
@@ -92,8 +96,8 @@ class SolvedPlacement(PlacementStrategy):
         if len(surface2_idx) == 0:
             surface2_idx = np.arange(N2)
 
-        np.random.shuffle(surface1_idx)
-        np.random.shuffle(surface2_idx)
+        self.rng.shuffle(surface1_idx)
+        self.rng.shuffle(surface2_idx)
 
         max_ref_tries = min(50, N1 * N2)
         ref_try = 0
@@ -107,11 +111,11 @@ class SolvedPlacement(PlacementStrategy):
                 if ref_try > max_ref_tries:
                     break
 
-                u = np.random.normal(size=3)
+                u = self.rng.normal(size=3)
                 u /= np.linalg.norm(u)
                 new_com2 = Gamma * u
 
-                euler = np.random.uniform(0, 2 * np.pi, size=3)
+                euler = self.rng.uniform(0, 2 * np.pi, size=3)
                 pos2_rot = rotate_points(pos2_centered, tuple(euler))
                 pos2_trial = pos2_rot + new_com2
 
@@ -130,5 +134,6 @@ class SolvedPlacement(PlacementStrategy):
                 break
 
         return mc_touch_merge(
-            pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+            pos1, r1, pos2_centered, r2, Gamma, mean_radius,
+            self.overlap_tolerance, self.rng
         )

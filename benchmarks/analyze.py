@@ -60,11 +60,13 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
     exp3 = [r for r in rows if r["exp"] == "3"]
 
     # ---- Fig 1: Df fidelity (x = target Df per pair, y = Df_est ± std)
-    fig, axes = plt.subplots(1, 4, figsize=(16, 4), sharey=True, squeeze=False)
-    for ax, m in zip(axes[0], ("pca", "cca", "fracval", "tdcca")):
+    panels = (("pca", "solved"), ("cca", "solved"), ("cca", "constructed"))
+    fig, axes = plt.subplots(1, len(panels), figsize=(4 * len(panels), 4),
+                             sharey=True, squeeze=False)
+    for ax, (m, pl) in zip(axes[0], panels):
         groups = defaultdict(list)
         for r in exp1:
-            if r["method"] == m and r["placement"] == "algebraic":
+            if r["method"] == m and r["placement"] == pl:
                 groups[(r["df"], r["N"])].append(r["df_est"])
         for N in sorted({k[1] for k in groups}):
             xs, ys, es = [], [], []
@@ -76,7 +78,7 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
             ax.errorbar(xs, ys, yerr=es, marker="o", capsize=3,
                         label=f"N={int(N)}")
         ax.plot([1.3, 2.5], [1.3, 2.5], "k--", lw=0.8, label="1:1")
-        ax.set_title(m); ax.set_xlabel("target $D_f$")
+        ax.set_title(f"{m}/{pl}"); ax.set_xlabel("target $D_f$")
     axes[0][0].set_ylabel("$D_{f,est}$")
     axes[0][0].legend(fontsize=8)
     _wm(fig, watermark)
@@ -147,20 +149,21 @@ def analyze(csv_path, outdir="benchmarks/results", watermark=None):
 
 
 def _write_tables(exp1, outdir):
-    # tab_multiseed: rows method x (df,kf), cols N, cells Df_est±std (R2)
+    # tab_multiseed: rows method/placement x (df,kf), cols N, cells Df_est±std
     cells = defaultdict(list)
     for r in exp1:
-        cells[(r["method"], r["df"], r["kf"], r["N"])].append(r["df_est"])
-    Ns = sorted({k[3] for k in cells})
-    lines = ["\\begin{tabular}{ll" + "c" * len(Ns) + "}", "\\toprule",
-             "Method & $(D_f,k_f)$ & " + " & ".join(f"N={int(n)}" for n in Ns) + " \\\\",
+        cells[(r["method"], r["placement"], r["df"], r["kf"], r["N"])].append(r["df_est"])
+    Ns = sorted({k[4] for k in cells})
+    lines = ["\\begin{tabular}{lll" + "c" * len(Ns) + "}", "\\toprule",
+             "Method & Placement & $(D_f,k_f)$ & "
+             + " & ".join(f"N={int(n)}" for n in Ns) + " \\\\",
              "\\midrule"]
-    csv_lines = ["method,df,kf," + ",".join(f"N{int(n)}" for n in Ns)]
-    for (m, df, kf) in sorted({(k[0], k[1], k[2]) for k in cells}):
-        row_tex = [f"{m} & ({df},{kf})"]
-        row_csv = [m, str(df), str(kf)]
+    csv_lines = ["method,placement,df,kf," + ",".join(f"N{int(n)}" for n in Ns)]
+    for (m, pl, df, kf) in sorted({(k[0], k[1], k[2], k[3]) for k in cells}):
+        row_tex = [f"{m} & {pl} & ({df},{kf})"]
+        row_csv = [m, pl, str(df), str(kf)]
         for n in Ns:
-            mean, std, cnt = _mean_std(cells.get((m, df, kf, n), []))
+            mean, std, cnt = _mean_std(cells.get((m, pl, df, kf, n), []))
             if cnt == 0:
                 row_tex.append("--"); row_csv.append("")
             else:
