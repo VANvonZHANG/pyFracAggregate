@@ -1,3 +1,4 @@
+import os
 import sys
 
 import numpy as np
@@ -8,6 +9,7 @@ from pyFracAggregate.io.visualization import (
     _build_plotter,
     _framing_distance,
     _orbit_camera_position,
+    save_screenshot,
 )
 
 
@@ -92,3 +94,39 @@ class TestBuildPlotter:
                 small_aggregate, color="red", opacity=1.0, color_by="mass",
                 cmap="viridis", background="white", window_size=(64, 48),
             )
+
+
+class TestSaveScreenshot:
+    def test_creates_png(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "render.png")
+        save_screenshot(small_aggregate, path)
+        assert os.path.exists(path)
+        assert os.path.getsize(path) > 0
+
+    def test_custom_color_opacity(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "render_red.png")
+        save_screenshot(small_aggregate, path, color="red", opacity=0.5)
+        assert os.path.exists(path)
+
+    def test_camera_presets(self, small_aggregate, tmp_path):
+        for preset in ["iso", "xy", "xz", "yz"]:
+            path = str(tmp_path / f"render_{preset}.png")
+            save_screenshot(small_aggregate, path, camera_position=preset)
+            assert os.path.exists(path)
+
+    def test_color_by_radius_renders(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "render_radius.png")
+        save_screenshot(small_aggregate, path, color_by="radius",
+                        window_size=(320, 240))
+        assert os.path.exists(path)
+        assert os.path.getsize(path) > 0
+
+    def test_rejects_non_png(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "render.jpg")
+        with pytest.raises(ValueError, match="png"):
+            save_screenshot(small_aggregate, path)
+
+    def test_invalid_color_by_raises(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "render.png")
+        with pytest.raises(ValueError, match="color_by"):
+            save_screenshot(small_aggregate, path, color_by="mass")

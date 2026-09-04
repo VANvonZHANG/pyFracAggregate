@@ -100,6 +100,49 @@ def _build_plotter(
         raise
 
 
+def save_screenshot(
+    aggregate: Aggregate,
+    path: str,
+    color: str = "lightblue",
+    opacity: float = 0.8,
+    color_by: str | None = None,
+    cmap: str = "viridis",
+    background: str = "white",
+    camera_position: str | tuple = "iso",
+    window_size: tuple[int, int] = (1024, 768),
+) -> None:
+    """Render an off-screen 3D screenshot of the aggregate and save as PNG.
+
+    Args:
+        aggregate: The fractal aggregate to render.
+        path: Output file path (must end in .png).
+        color: Sphere color name or hex; ignored when color_by="radius".
+        opacity: Sphere opacity (0.0 to 1.0).
+        color_by: None (solid color) or "radius" (colormap over monomer radii).
+        cmap: Colormap name for color_by="radius".
+        background: Background color name or hex.
+        camera_position: Preset name ("iso", "xy", "xz", "yz") or a
+            (position, focal_point, up) tuple.
+        window_size: (width, height) in pixels.
+
+    Raises:
+        ValueError: If path does not end in .png, the aggregate is empty,
+            or color_by is invalid.
+    """
+    if not path.lower().endswith(".png"):
+        raise ValueError(f"Output path must end in .png, got: {path}")
+
+    plotter = _build_plotter(
+        aggregate, color=color, opacity=opacity, color_by=color_by,
+        cmap=cmap, background=background, window_size=window_size,
+    )
+    try:
+        plotter.camera_position = cast(Any, camera_position)
+        plotter.screenshot(path)
+    finally:
+        plotter.close()
+
+
 def export_render(
     aggregate: Aggregate,
     path: str,
