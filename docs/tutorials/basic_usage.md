@@ -137,12 +137,12 @@ fractal dimension lives.
 ### Render the aggregate
 
 Numbers check out; now look at the object.
-[`export_render()`](/api-reference/index.md#io) writes an off-screen 3D
+[`save_screenshot()`](/api-reference/index.md#io) writes an off-screen 3D
 screenshot as PNG — `window_size` is capped at a modest 960 px to keep the
 docs light:
 
 ```python
-pfa.export_render(agg, "pca_render.png", color="dimgray", window_size=(960, 720))
+pfa.save_screenshot(agg, "pca_render.png", color="dimgray", window_size=(960, 720))
 ```
 
 ```{figure} ../_static/tutorial_pca_render.png
@@ -154,7 +154,7 @@ morphology.
 ```
 
 ```{note}
-`export_render` needs an OpenGL context even though it renders off-screen.
+`save_screenshot` needs an OpenGL context even though it renders off-screen.
 On a headless server it may need `xvfb-run` or an OSMesa-built VTK — the
 workarounds are collected in
 [Rendered image](/user-guide/io.md#rendered-image).
@@ -245,7 +245,7 @@ R2:      0.9780
 ```
 
 ```python
-pfa.export_render(agg_poly, "fracval_render.png", color="dimgray", window_size=(960, 720))
+pfa.save_screenshot(agg_poly, "fracval_render.png", color="dimgray", window_size=(960, 720))
 ```
 
 ```{figure} ../_static/tutorial_fracval_render.png

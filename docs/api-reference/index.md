@@ -103,9 +103,9 @@ MP4 rotation videos. The render and video exporters require a working pyvista
 ```{eval-rst}
 .. autofunction:: pyFracAggregate.io.data.export_yaml
 
-.. autofunction:: pyFracAggregate.io.visualization.export_render
+.. autofunction:: pyFracAggregate.io.visualization.save_screenshot
 
-.. autofunction:: pyFracAggregate.io.visualization.export_rotation_video
+.. autofunction:: pyFracAggregate.io.visualization.save_rotation_video
 
 .. autofunction:: pyFracAggregate.io.vtk.export_vtm
 

@@ -49,6 +49,7 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 
 ### IO (`src/pyFracAggregate/io/`)
 - **data.py**: `export_yaml()` — full aggregate snapshot (data, generation params, analysis results)
+- **visualization.py**: `save_screenshot()` (PNG) and `save_rotation_video()` (MP4) via off-screen pyvista; `color_by="radius"` maps monomer size to a colormap
 - **vtk.py**: `export_vtm()` (MultiBlock) and `export_vtk()` (point cloud) via pyvista
 
 ### Top-level API (`__init__.py`)
