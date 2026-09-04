@@ -56,7 +56,7 @@ Extent:    33.7 x 28.1 x 35.2 nm
 
 With no `particle_dist` argument the primaries are monodisperse with radius
 1.0 (in the default `length_unit` of nm), and 200 spheres at {math}`D_f = 1.8`
-span roughly 37 nm — an open, branched object, not a compact ball.
+span roughly 35 nm — an open, branched object, not a compact ball.
 
 ### Analyze morphology
 

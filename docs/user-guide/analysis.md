@@ -53,7 +53,7 @@ theory. The fit window used by `analyze()` runs from the mean primary radius
 to {math}`R_g`.
 
 Two caveats learned from the example above: a single realization at moderate
-{math}`N` under-estimates the requested {math}`D_f` (here 1.65 for a request
+{math}`N` under-estimates the requested {math}`D_f` (here 1.49 for a request
 of 1.8), and `R2` measures the fit quality, not the agreement with the
 requested `df`. Average `Df_estimated` over several seeded realizations before
 quoting ensemble numbers.
