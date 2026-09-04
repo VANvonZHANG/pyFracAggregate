@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, Sequence, cast
 
 import numpy as np
 import pyvista as pv
@@ -16,6 +16,33 @@ def _build_sphere_mesh(aggregate: Aggregate) -> pv.MultiBlock:
         sphere = pv.Sphere(radius=radii[i], center=positions[i])
         blocks.append(sphere)
     return blocks
+
+
+def _orbit_camera_position(
+    center: np.ndarray,
+    distance: float,
+    azimuth_deg: float,
+    elevation_deg: float,
+) -> list[list[float]]:
+    """Camera tuple [pos, focal, up] for a full pyvista camera_position assignment.
+
+    Pure function (no rendering side effects) so the orbit geometry stays
+    unit-testable without a plotter.
+    """
+    az = np.radians(azimuth_deg)
+    el = np.radians(elevation_deg)
+    pos = [
+        float(center[0] + distance * np.cos(el) * np.cos(az)),
+        float(center[1] + distance * np.cos(el) * np.sin(az)),
+        float(center[2] + distance * np.sin(el)),
+    ]
+    return [pos, [float(c) for c in center], [0.0, 0.0, 1.0]]
+
+
+def _framing_distance(bounds: Sequence[float]) -> float:
+    """aerosol3d framing rule: 1.5x the largest extent, floored at 1.0."""
+    length = max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+    return max(length, 1.0) * 1.5
 
 
 def export_render(
