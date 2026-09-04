@@ -1,9 +1,10 @@
 """pyFracAggregate: generation and analysis of synthetic fractal aggregates.
 
 This library builds clusters of spherical primary particles (soot-like,
-aerosol-like) with tunable fractal morphology, unifying four classical
-generation algorithms: particle-cluster aggregation (PCA), cluster-cluster
-aggregation (CCA), FracVAL, and the lattice-based Thouy & Jullien method.
+aerosol-like) with tunable fractal morphology, unifying the classical
+generation algorithm families — particle-cluster aggregation (PCA) and
+cluster-cluster aggregation (CCA) — on three orthogonal axes: method,
+scaling (count/mass), and placement (sampled/solved/constructed).
 It also provides morphological analysis (radius of gyration, pair correlation
 function, fractal-dimension estimation) and export to YAML, VTK/VTM, rendered
 images, and rotation videos.
@@ -28,8 +29,6 @@ from pyFracAggregate.io.data import export_yaml
 from pyFracAggregate.io.visualization import export_render, export_rotation_video
 from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
-from pyFracAggregate.generators.fracval import FracVALGenerator
-from pyFracAggregate.generators.tdcca import ThouyJullienGenerator
 from pyFracAggregate.generators.placement.solved import SolvedPlacement
 from pyFracAggregate.generators.placement.sampled import SampledPlacement
 from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
@@ -145,8 +144,6 @@ __all__ = [
     "export_vtk",
     "PCAGenerator",
     "CCAGenerator",
-    "FracVALGenerator",
-    "ThouyJullienGenerator",
     "SolvedPlacement",
     "SampledPlacement",
     "ConstructedPlacement",
