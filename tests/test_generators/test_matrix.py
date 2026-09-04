@@ -40,3 +40,10 @@ def test_bad_placement_raises():
 def test_tdcca_removed_raises():
     with pytest.raises(ValueError, match="removed in v0.4"):
         pfa.generate(n_particles=16, df=1.8, kf=1.3, method="tdcca")
+
+
+def test_instance_placement_pca_constructed_raises():
+    from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
+    with pytest.raises(ValueError, match="does not support placement='constructed'"):
+        pfa.generate(n_particles=20, df=1.8, kf=1.3, method="pca",
+                     placement=ConstructedPlacement())

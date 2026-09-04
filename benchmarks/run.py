@@ -10,7 +10,6 @@ if __package__ in (None, ""):  # executed as a script: put repo root on sys.path
 import argparse
 import csv
 import time
-import numpy as np
 
 import pyFracAggregate as pfa
 from benchmarks.grids import build_grid, sort_runs, make_dist, ROW_FIELDS

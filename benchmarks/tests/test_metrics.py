@@ -63,7 +63,6 @@ def test_overlap_stats():
 def test_evaluate_run_end_to_end():
     spec = dict(exp=1, method="pca", placement="solved", beta=None,
                 N=50, df=1.8, kf=1.3, sg=1.0, seed=0)
-    np.random.seed(0)
     agg = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="pca")
     row = evaluate_run(spec, agg, elapsed=1.234)
     for key in ("df_est", "df_est_r2", "fit_npts", "norm_err", "rg",
