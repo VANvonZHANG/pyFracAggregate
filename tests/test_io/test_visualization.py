@@ -200,3 +200,16 @@ class TestSaveRotationVideo:
         with pytest.raises(RuntimeError, match="ffmpeg"):
             save_rotation_video(small_aggregate, path)
         assert closed == [True]
+
+
+class TestPublicExports:
+    def test_new_api_exported_old_api_removed(self):
+        assert hasattr(pfa, "save_screenshot")
+        assert hasattr(pfa, "save_rotation_video")
+        assert "save_screenshot" in pfa.__all__
+        assert "save_rotation_video" in pfa.__all__
+        assert not hasattr(pfa, "export_render")
+        assert not hasattr(pfa, "export_rotation_video")
+
+    def test_version_bumped(self):
+        assert pfa.__version__ == "0.5.0"
