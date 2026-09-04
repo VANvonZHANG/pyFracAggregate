@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from typing import Any, Sequence, cast
 
 import numpy as np
@@ -100,7 +101,8 @@ def _build_plotter(
             plotter.add_mesh(mesh, color=color, opacity=opacity)
         return plotter
     except Exception:
-        plotter.close()
+        with contextlib.suppress(Exception):
+            plotter.close()
         raise
 
 
@@ -144,7 +146,8 @@ def save_screenshot(
         plotter.camera_position = cast(Any, camera_position)
         plotter.screenshot(path)
     finally:
-        plotter.close()
+        with contextlib.suppress(Exception):
+            plotter.close()
 
 
 def save_rotation_video(
@@ -185,6 +188,8 @@ def save_rotation_video(
     """
     if not path.lower().endswith(".mp4"):
         raise ValueError(f"Output path must end in .mp4, got: {path}")
+    if n_frames < 1:
+        raise ValueError(f"n_frames must be >= 1, got: {n_frames}")
 
     import imageio.v2 as imageio
 
@@ -198,7 +203,8 @@ def save_rotation_video(
             format="FFMPEG",  # type: ignore[arg-type]  # imageio stub quirk
         )
     except Exception:
-        plotter.close()
+        with contextlib.suppress(Exception):
+            plotter.close()
         raise
     try:
         bounds = plotter.bounds
@@ -221,5 +227,7 @@ def save_rotation_video(
             if frame is not None:
                 writer.append_data(frame)
     finally:
-        writer.close()
-        plotter.close()
+        try:
+            writer.close()
+        finally:
+            plotter.close()

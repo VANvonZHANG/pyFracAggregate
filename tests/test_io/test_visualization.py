@@ -147,6 +147,11 @@ class TestSaveRotationVideo:
         with pytest.raises(ValueError, match="mp4"):
             save_rotation_video(small_aggregate, path)
 
+    def test_rejects_zero_frames(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "rotation.mp4")
+        with pytest.raises(ValueError, match="n_frames"):
+            save_rotation_video(small_aggregate, path, n_frames=0)
+
     def test_camera_actually_rotates(self, small_aggregate, tmp_path):
         """Regression: v0.4 export_rotation_video produced a static camera.
 
