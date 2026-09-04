@@ -62,6 +62,14 @@ and `window_size` are configurable:
 pfa.save_screenshot(agg, "render.png", color="dimgray", window_size=(512, 384))
 ```
 
+Polydisperse clusters can be colored by monomer size instead of a solid color —
+`color_by="radius"` maps each monomer's radius onto a colormap (`cmap`,
+default `"viridis"`); the `color` argument is ignored in that mode:
+
+```python
+pfa.save_screenshot(agg, "render_radius.png", color_by="radius", cmap="plasma")
+```
+
 ## Rotation video
 
 `save_rotation_video` animates a full 360° turn and writes an MP4
