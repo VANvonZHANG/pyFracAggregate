@@ -188,7 +188,7 @@ def mc_touch_merge(
     overlap_tolerance: float,
     track_best: bool = False,
     max_attempts: int = 20000,
-) -> np.ndarray | None:
+) -> np.ndarray:
     """Random rotation + collision detection for cluster merging.
 
     If track_best=True, tracks the candidate with minimum gap (like Filippov CCA).
