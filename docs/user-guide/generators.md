@@ -193,9 +193,11 @@ agg = gen.generate()
 ## Reproducibility and seeding
 
 Generation is stochastic. All generators draw randomness from a private
-NumPy `Generator` created from the `seed` argument — the **global**
-`numpy.random` state is never consulted, so `numpy.random.seed(...)` has no
-effect on generation.
+NumPy `Generator` created from the `seed` argument — generation never
+consults the **global** `numpy.random` state, so `numpy.random.seed(...)` has
+no effect on generation. (Calling `distribution.sample(n)` or
+`random_point_on_circle()` directly, without a generator, still uses the
+global stream.)
 
 ```python
 first = pfa.generate(32, 1.8, 1.9, seed=42)

@@ -122,8 +122,14 @@ def get_generator(
     if surface_beta is not None:
         kwargs["surface_beta"] = surface_beta
 
+    # Injected instances keep their configuration; the generator adopts them
+    # (and shares its seeded Generator with them).
+    from pyFracAggregate.generators.placement.base import PlacementStrategy
+    placement_arg = (
+        placement if isinstance(placement, PlacementStrategy) else placement_name
+    )
     return _GENERATORS[method](
         n_particles, df, kf, particle_dist, overlap_tolerance,
         scaling=get_scaling(scaling, df, kf),
-        placement=placement_name, seed=seed, **kwargs,
+        placement=placement_arg, seed=seed, **kwargs,
     )

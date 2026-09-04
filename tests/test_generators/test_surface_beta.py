@@ -23,9 +23,8 @@ def test_snapshot_default_beta_unchanged():
 
 @pytest.mark.parametrize("beta", [0.0, 0.7, 1.0])
 def test_surface_beta_accepts_values(beta):
-    np.random.seed(0)
     agg = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="cca",
-                       surface_beta=beta)
+                       surface_beta=beta, seed=0)
     assert agg.positions.shape == (50, 3)
 
 
@@ -58,8 +57,10 @@ def test_surface_beta_kwarg_reaches_solved_placement():
 
 
 def test_surface_beta_changes_cca_output():
-    np.random.seed(7)
-    a = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="cca", surface_beta=0.9)
-    np.random.seed(7)
-    b = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="cca", surface_beta=0.1)
+    # N must be large enough that merges reach the surface-particle filter
+    # (at small N the early Monte Carlo path runs and beta is not consumed).
+    a = pfa.generate(n_particles=150, df=1.8, kf=1.3, method="cca",
+                     surface_beta=0.9, seed=7)
+    b = pfa.generate(n_particles=150, df=1.8, kf=1.3, method="cca",
+                     surface_beta=0.1, seed=7)
     assert not np.allclose(a.positions, b.positions)

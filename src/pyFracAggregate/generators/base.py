@@ -67,6 +67,11 @@ class BaseGenerator(ABC):
             surface_beta=surface_beta if surface_beta is not None else 0.3,
             rng=self.rng,
         )
+        if isinstance(placement, PlacementStrategy):
+            # An injected instance keeps its own overlap_tolerance/surface_beta
+            # configuration, but the generator owns reproducibility: share
+            # its seeded Generator with the instance.
+            self.placement.rng = self.rng
         self._resolved_placement = {
             "SolvedPlacement": "solved",
             "SampledPlacement": "sampled",

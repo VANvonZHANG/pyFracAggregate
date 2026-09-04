@@ -7,7 +7,14 @@ from pyFracAggregate.core.aggregate import Aggregate
 
 
 class PlacementStrategy(ABC):
-    """Strategy for placing particles during fractal aggregate generation."""
+    """Strategy for placing particles during fractal aggregate generation.
+
+    The owning generator sets `rng` to its seeded
+    `numpy.random.Generator` so placement draws are reproducible with
+    `seed=`.
+    """
+
+    rng: np.random.Generator
 
     @abstractmethod
     def place_particle(

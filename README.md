@@ -65,8 +65,8 @@ pfa.export_yaml(agg, 'aggregate.yaml')
 pfa.export_vtk(agg, 'aggregate.vtk')
 ```
 
-Generation is stochastic; pass `seed=` for reproducible aggregates (the
-global `numpy.random` state is never consulted). The single-realization
+Generation is stochastic; pass `seed=` for reproducible aggregates
+(generation never consults the global `numpy.random` state). The single-realization
 `df_est` scatters around the requested `df`; average over realizations for
 ensemble statements.
 
