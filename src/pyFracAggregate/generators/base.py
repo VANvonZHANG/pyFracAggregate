@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.core.distributions import ParticleDistribution
+from pyFracAggregate.core.scaling import CountScaling, ScalingLaw
 from pyFracAggregate.generators.placement.base import PlacementStrategy, get_placement
 
 
@@ -17,6 +18,7 @@ class BaseGenerator(ABC):
         mass_unit: str = 'g',
         density: float = 1.0,
         placement: str = 'algebraic',
+        scaling: ScalingLaw | None = None,
     ):
         """Initializes the generator.
 
@@ -30,10 +32,12 @@ class BaseGenerator(ABC):
             mass_unit (str, optional): Unit for mass. Defaults to 'g'.
             density (float, optional): Density of particle material. Defaults to 1.0.
             placement (str, optional): Placement strategy name ('algebraic' or 'random'). Defaults to 'algebraic'.
+            scaling (ScalingLaw, optional): Target-distance law. Defaults to CountScaling.
         """
         self.n_particles = n_particles
         self.df = df
         self.kf = kf
+        self.scaling: ScalingLaw = scaling if scaling is not None else CountScaling(self.df, self.kf)
         self.particle_dist = particle_dist
         self.overlap_tolerance = overlap_tolerance
         self.length_unit = length_unit

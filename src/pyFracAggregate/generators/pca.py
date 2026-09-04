@@ -21,16 +21,9 @@ class PCAGenerator(BaseGenerator):
             r_N = radii[n - 1]
             m_N = masses[n - 1]
 
-            geom_center = np.mean(agg.positions, axis=0)
+            center, L = self.scaling.pca_step(agg, r_N, m_N, radii)
 
-            # Filippov Eq [10]
-            term1 = (n**2 * a**2) / (n - 1) * (n / self.kf) ** (2.0 / self.df)
-            term2 = (n * a**2) / (n - 1)
-            term3 = n * a**2 * ((n - 1) / self.kf) ** (2.0 / self.df)
-            L_sq = term1 - term2 - term3
-            L = np.sqrt(max(L_sq, r_N**2))
-
-            pos = self.placement.place_particle(agg, r_N, m_N, geom_center, L, a)
+            pos = self.placement.place_particle(agg, r_N, m_N, center, L, a)
 
             if pos is not None:
                 agg.add_particle(pos[0], pos[1], pos[2], r_N, m_N)
