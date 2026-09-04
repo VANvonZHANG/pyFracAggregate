@@ -49,8 +49,8 @@ class TestOrbitCameraPosition:
 
 
 class TestFramingDistance:
-    def test_largest_extent(self):
-        assert _framing_distance((0.0, 2.0, 0.0, 4.0, 0.0, 6.0)) == 9.0
+    def test_bounding_box_diagonal(self):
+        assert _framing_distance((0.0, 2.0, 0.0, 4.0, 0.0, 6.0)) == pytest.approx(1.5 * np.sqrt(56.0))
 
     def test_degenerate_bounds_fallback(self):
         assert _framing_distance((0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) == 1.5

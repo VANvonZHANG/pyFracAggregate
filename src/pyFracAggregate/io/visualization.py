@@ -40,8 +40,12 @@ def _orbit_camera_position(
 
 
 def _framing_distance(bounds: Sequence[float]) -> float:
-    """aerosol3d framing rule: 1.5x the largest extent, floored at 1.0."""
-    length = max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+    """aerosol3d framing rule: 1.5x the bounding-box diagonal, floored at 1.0."""
+    length = float(np.sqrt(
+        (bounds[1] - bounds[0]) ** 2
+        + (bounds[3] - bounds[2]) ** 2
+        + (bounds[5] - bounds[4]) ** 2
+    ))
     return max(length, 1.0) * 1.5
 
 
