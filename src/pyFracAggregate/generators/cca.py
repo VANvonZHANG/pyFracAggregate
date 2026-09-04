@@ -1,19 +1,21 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
+from pyFracAggregate.core.distributions import FixedRadii
+from pyFracAggregate.core.scaling import CountScaling
 from pyFracAggregate.generators.base import BaseGenerator
 from pyFracAggregate.generators.pca import PCAGenerator
-from pyFracAggregate.analysis.morphology import center_of_mass, radius_of_gyration
 
 
 class CCAGenerator(BaseGenerator):
-    """Cluster-Cluster Aggregation with pluggable placement strategy."""
+    """Cluster-Cluster Aggregation with pluggable scaling and placement."""
 
     def generate(self) -> Aggregate:
         if self.n_particles <= 8:
             pca_gen = PCAGenerator(
                 self.n_particles, self.df, self.kf, self.particle_dist,
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
-                self.density, placement=self._placement_name
+                self.density, scaling=CountScaling(self.df, self.kf),
+                placement=self._placement_name
             )
             return pca_gen.generate()
 
@@ -26,17 +28,12 @@ class CCAGenerator(BaseGenerator):
             rem = self.n_particles - idx
             curr_size = cluster_size if rem >= cluster_size * 1.5 else rem
 
-            class LocalDist:
-                def __init__(self, r):
-                    self.r = r
-                def sample(self, n):
-                    return self.r
-
             local_pca = PCAGenerator(
                 curr_size, self.df, self.kf,
-                LocalDist(radii[idx:idx + curr_size]),
+                FixedRadii(radii[idx:idx + curr_size]),
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
-                self.density, placement=self._placement_name
+                self.density, scaling=CountScaling(self.df, self.kf),
+                placement=self._placement_name
             )
             sub_agg = local_pca.generate()
             cluster_list.append(sub_agg)
@@ -55,19 +52,13 @@ class CCAGenerator(BaseGenerator):
         N2 = agg2.current_size
         N = N1 + N2
 
+        from pyFracAggregate.analysis.morphology import center_of_mass
+
         com1 = center_of_mass(agg1)
         com2 = center_of_mass(agg2)
-        Rg1 = radius_of_gyration(agg1)
-        Rg2 = radius_of_gyration(agg2)
 
+        Gamma = self.scaling.cca_gamma(agg1, agg2)
         a = (np.mean(agg1.radii) * N1 + np.mean(agg2.radii) * N2) / N
-
-        term1 = (a**2 * N**2) / (N1 * N2) * (N / self.kf) ** (2.0 / self.df)
-        term2 = (N / N2) * Rg1**2
-        term3 = (N / N1) * Rg2**2
-
-        Gamma_sq = term1 - term2 - term3
-        Gamma = np.sqrt(max(Gamma_sq, 0.0))
 
         pos1 = agg1.positions - com1
         r1 = agg1.radii

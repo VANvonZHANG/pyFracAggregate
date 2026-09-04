@@ -31,3 +31,20 @@ def test_pca_default_bit_identical():
 def test_pca_random_bit_identical():
     agg = _regenerate(dict(method="pca", placement="random"))
     assert np.array_equal(agg.positions, SNAP["pca_random"])
+
+
+def test_cca_default_bit_identical():
+    agg = _regenerate(dict(method="cca"))
+    assert np.array_equal(agg.positions, SNAP["cca_default"])
+
+
+def test_cca_random_bit_identical():
+    agg = _regenerate(dict(method="cca", placement="random"))
+    assert np.array_equal(agg.positions, SNAP["cca_random"])
+
+
+def test_cca_poly_bit_identical():
+    dist = pfa.LognormalDistribution(1.0, 1.6)
+    np.random.seed(0)
+    agg = pfa.generate(n_particles=N, df=DF, kf=KF, method="cca", particle_dist=dist)
+    assert np.array_equal(agg.positions, SNAP["cca_poly"])

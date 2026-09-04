@@ -60,3 +60,27 @@ class LognormalDistribution(ParticleDistribution):
         if self.normal_std == 0.0:
             return np.full(n, self.mean, dtype=np.float64)
         return np.random.lognormal(self.normal_mean, self.normal_std, n)
+
+class FixedRadii(ParticleDistribution):
+    """Replays a pre-sampled radius array verbatim.
+
+    Used to seed CCA subclusters from an already-sampled global distribution.
+    """
+
+    def __init__(self, radii: np.ndarray):
+        """Initializes the distribution.
+
+        Args:
+            radii (np.ndarray): Exact radii to replay.
+
+        Raises:
+            ValueError: If radii is empty.
+        """
+        self.radii = np.asarray(radii, dtype=np.float64)
+        if self.radii.size == 0:
+            raise ValueError("radii must be non-empty")
+
+    def sample(self, n: int) -> np.ndarray:
+        if n != self.radii.size:
+            raise ValueError(f"FixedRadii expected {self.radii.size} radii, got n={n}")
+        return self.radii
