@@ -1,8 +1,8 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
-from pyFracAggregate.generators.placement._helpers import (
-    random_monte_carlo_place,
-    random_monte_carlo_merge,
+from pyFracAggregate.generators.placement.solvers import (
+    mc_touch_merge,
+    mc_touch_place,
 )
 from pyFracAggregate.generators.placement.base import PlacementStrategy
 
@@ -25,7 +25,7 @@ class RandomPlacement(PlacementStrategy):
         L: float,
         mean_radius: float,
     ) -> tuple | None:
-        return random_monte_carlo_place(
+        return mc_touch_place(
             agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
         )
 
@@ -40,7 +40,7 @@ class RandomPlacement(PlacementStrategy):
         Gamma: float,
         mean_radius: float,
     ) -> np.ndarray | None:
-        return random_monte_carlo_merge(
+        return mc_touch_merge(
             pos1, r1, pos2_centered, r2, Gamma, mean_radius,
             self.overlap_tolerance, track_best=True,
         )

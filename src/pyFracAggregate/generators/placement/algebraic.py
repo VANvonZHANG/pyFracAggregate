@@ -1,14 +1,12 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.core.math_utils import rotate_points
-from pyFracAggregate.generators.optimizer_flage import (
+from pyFracAggregate.generators.placement.solvers import (
     build_particle_list_pca,
-    find_exact_touching_points_pca,
     filter_overlapping_candidates,
-)
-from pyFracAggregate.generators.placement._helpers import (
-    random_monte_carlo_place,
-    random_monte_carlo_merge,
+    mc_touch_merge,
+    mc_touch_place,
+    solve_tangency,
 )
 from pyFracAggregate.generators.placement.base import PlacementStrategy
 
@@ -44,7 +42,7 @@ class AlgebraicPlacement(PlacementStrategy):
                 ref_pos = agg.positions[ref_idx]
                 r_ref = agg.radii[ref_idx]
 
-                candidates = find_exact_touching_points_pca(
+                candidates = solve_tangency(
                     geom_center, L, ref_pos, candidate_radius, r_ref, num_points=8
                 )
                 if len(candidates) == 0:
@@ -58,7 +56,7 @@ class AlgebraicPlacement(PlacementStrategy):
                     return (pt[0], pt[1], pt[2])
 
         # Fallback: random Monte Carlo
-        return random_monte_carlo_place(
+        return mc_touch_place(
             agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
         )
 
@@ -81,7 +79,7 @@ class AlgebraicPlacement(PlacementStrategy):
         D2_max = np.max(np.linalg.norm(pos2_centered, axis=1) + r2)
 
         if D1_max + D2_max < Gamma:
-            return random_monte_carlo_merge(
+            return mc_touch_merge(
                 pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
             )
 
@@ -131,6 +129,6 @@ class AlgebraicPlacement(PlacementStrategy):
             if ref_try > max_ref_tries:
                 break
 
-        return random_monte_carlo_merge(
+        return mc_touch_merge(
             pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
         )
