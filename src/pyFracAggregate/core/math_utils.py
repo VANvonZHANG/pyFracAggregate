@@ -91,7 +91,7 @@ def sphere_sphere_intersection(
     h_sq = r1**2 - a**2
     if h_sq < -1e-12:
         return None
-    h = np.sqrt(max(h_sq, 0.0))
+    h = np.sqrt(max(float(h_sq), 0.0))
 
     circle_center = c1 + (a / d) * d_vec
     return circle_center, h
@@ -101,6 +101,7 @@ def random_point_on_circle(
     center: np.ndarray,
     radius: float,
     normal: np.ndarray,
+    rng: "np.random.Generator | None" = None,
 ) -> np.ndarray:
     """Sample a random point on a circle in 3D.
 
@@ -108,6 +109,7 @@ def random_point_on_circle(
         center: Circle center, shape (3,).
         radius: Circle radius.
         normal: Normal vector to the circle plane, shape (3,).
+        rng: Random generator; None uses NumPy's global legacy stream.
 
     Returns:
         A single point on the circle, shape (3,).
@@ -120,5 +122,8 @@ def random_point_on_circle(
     u /= np.linalg.norm(u)
     v = np.cross(normal, u)
 
-    theta = np.random.uniform(0, 2 * np.pi)
+    if rng is not None:
+        theta = rng.uniform(0, 2 * np.pi)
+    else:
+        theta = np.random.uniform(0, 2 * np.pi)
     return center + radius * (np.cos(theta) * u + np.sin(theta) * v)

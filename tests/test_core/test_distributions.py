@@ -41,3 +41,20 @@ def test_lognormal_distribution_std_one():
     dist = LognormalDistribution(mean=15.0, std=1.0)
     samples = dist.sample(10)
     assert np.allclose(samples, 15.0)
+
+
+class TestFixedRadii:
+    def test_is_particle_distribution(self):
+        from pyFracAggregate.core.distributions import FixedRadii, ParticleDistribution
+        assert issubclass(FixedRadii, ParticleDistribution)
+
+    def test_sample_replays_radii_verbatim(self):
+        from pyFracAggregate.core.distributions import FixedRadii
+        radii = np.array([1.0, 2.0, 3.0])
+        dist = FixedRadii(radii)
+        assert np.array_equal(dist.sample(3), radii)
+
+    def test_sample_wrong_n_raises(self):
+        from pyFracAggregate.core.distributions import FixedRadii
+        with pytest.raises(ValueError, match="expected 3 radii, got n=2"):
+            FixedRadii(np.array([1.0, 2.0, 3.0])).sample(2)

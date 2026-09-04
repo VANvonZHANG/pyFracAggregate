@@ -1,28 +1,25 @@
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
 from pyFracAggregate.core.math_utils import rotate_points
-from pyFracAggregate.generators.optimizer_flage import (
-    build_particle_list_pca,
-    find_exact_touching_points_pca,
-    filter_overlapping_candidates,
-)
-from pyFracAggregate.generators.placement._helpers import (
-    random_monte_carlo_place,
-    random_monte_carlo_merge,
-)
 from pyFracAggregate.generators.placement.base import PlacementStrategy
+from pyFracAggregate.generators.placement.solvers import (
+    build_particle_list_pca,
+    filter_overlapping_candidates,
+    mc_touch_merge,
+    mc_touch_place,
+    solve_tangency,
+)
 
 
-class AlgebraicPlacement(PlacementStrategy):
-    """FLAGE algebraic placement (Skorupski et al., 2014).
+class SolvedPlacement(PlacementStrategy):
+    """Emergent contact via closed-form tangency solving (Skorupski et al.,
+    2014, FLAGE), with Monte Carlo fallback."""
 
-    Uses sphere-sphere intersection to compute exact touching points,
-    with random Monte Carlo as fallback.
-    """
-
-    def __init__(self, overlap_tolerance: float = 0.0, surface_beta: float = 0.3):
+    def __init__(self, overlap_tolerance: float = 1e-5, surface_beta: float = 0.3,
+                 rng: "np.random.Generator | None" = None):
         self.overlap_tolerance = overlap_tolerance
         self.surface_beta = surface_beta
+        self.rng = rng if rng is not None else np.random.default_rng()
 
     def place_particle(
         self,
@@ -37,14 +34,14 @@ class AlgebraicPlacement(PlacementStrategy):
         candidate_list = build_particle_list_pca(agg.positions, agg.radii, L, mean_radius)
 
         if len(candidate_list) > 0:
-            np.random.shuffle(candidate_list)
+            self.rng.shuffle(candidate_list)
             max_ref = min(5, len(candidate_list))
             for i in range(max_ref):
                 ref_idx = candidate_list[i % len(candidate_list)]
                 ref_pos = agg.positions[ref_idx]
                 r_ref = agg.radii[ref_idx]
 
-                candidates = find_exact_touching_points_pca(
+                candidates = solve_tangency(
                     geom_center, L, ref_pos, candidate_radius, r_ref, num_points=8
                 )
                 if len(candidates) == 0:
@@ -54,12 +51,13 @@ class AlgebraicPlacement(PlacementStrategy):
                     candidates, agg.positions, agg.radii, candidate_radius, self.overlap_tolerance
                 )
                 if len(valid) > 0:
-                    pt = valid[np.random.randint(len(valid))]
+                    pt = valid[self.rng.integers(len(valid))]
                     return (pt[0], pt[1], pt[2])
 
         # Fallback: random Monte Carlo
-        return random_monte_carlo_place(
-            agg, candidate_radius, geom_center, L, mean_radius, self.overlap_tolerance
+        return mc_touch_place(
+            agg, candidate_radius, geom_center, L, mean_radius,
+            self.overlap_tolerance, self.rng
         )
 
     def merge_clusters(
@@ -72,7 +70,7 @@ class AlgebraicPlacement(PlacementStrategy):
         agg2: Aggregate,
         Gamma: float,
         mean_radius: float,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """FLAGE-style merge with surface particle filtering + random fallback."""
         N1 = agg1.current_size
         N2 = agg2.current_size
@@ -81,8 +79,9 @@ class AlgebraicPlacement(PlacementStrategy):
         D2_max = np.max(np.linalg.norm(pos2_centered, axis=1) + r2)
 
         if D1_max + D2_max < Gamma:
-            return random_monte_carlo_merge(
-                pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+            return mc_touch_merge(
+                pos1, r1, pos2_centered, r2, Gamma, mean_radius,
+                self.overlap_tolerance, self.rng
             )
 
         dists1 = np.linalg.norm(pos1, axis=1)
@@ -97,23 +96,26 @@ class AlgebraicPlacement(PlacementStrategy):
         if len(surface2_idx) == 0:
             surface2_idx = np.arange(N2)
 
-        np.random.shuffle(surface1_idx)
-        np.random.shuffle(surface2_idx)
+        self.rng.shuffle(surface1_idx)
+        self.rng.shuffle(surface2_idx)
 
         max_ref_tries = min(50, N1 * N2)
         ref_try = 0
 
-        for si in surface1_idx:
-            for sj in surface2_idx:
+        # Loop variables iterate the surface-particle filter order; the trial
+        # body samples fresh orientations (emergent contact), it does not solve
+        # for si/sj contact geometry — that is ConstructedPlacement's job.
+        for _si in surface1_idx:
+            for _sj in surface2_idx:
                 ref_try += 1
                 if ref_try > max_ref_tries:
                     break
 
-                u = np.random.normal(size=3)
+                u = self.rng.normal(size=3)
                 u /= np.linalg.norm(u)
                 new_com2 = Gamma * u
 
-                euler = np.random.uniform(0, 2 * np.pi, size=3)
+                euler = self.rng.uniform(0, 2 * np.pi, size=3)
                 pos2_rot = rotate_points(pos2_centered, tuple(euler))
                 pos2_trial = pos2_rot + new_com2
 
@@ -131,6 +133,7 @@ class AlgebraicPlacement(PlacementStrategy):
             if ref_try > max_ref_tries:
                 break
 
-        return random_monte_carlo_merge(
-            pos1, r1, pos2_centered, r2, Gamma, mean_radius, self.overlap_tolerance
+        return mc_touch_merge(
+            pos1, r1, pos2_centered, r2, Gamma, mean_radius,
+            self.overlap_tolerance, self.rng
         )

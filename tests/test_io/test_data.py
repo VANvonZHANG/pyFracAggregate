@@ -82,3 +82,30 @@ def test_export_yaml_numpy_arrays_converted(tmp_path):
     path = str(tmp_path / "numpy_safe.yaml")
     # Should not raise
     export_yaml(agg, path)
+
+
+def test_export_yaml_accepts_morphology_report_with_legacy_keys(tmp_path):
+    import pyFracAggregate as pfa
+    agg = pfa.generate(30, 1.8, 1.3, method="pca", seed=7)
+    report = pfa.analyze(agg)
+    path = str(tmp_path / "report.yaml")
+    export_yaml(agg, path, analysis_results=report)
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    # 0.1/0.3 snapshot keys must survive (spec 2.5 / deviation N3)
+    assert data["analysis"]["Rg"] == pytest.approx(report.rg)
+    assert data["analysis"]["Df_estimated"] == pytest.approx(report.df_est)
+    assert data["analysis"]["R2"] == pytest.approx(report.r2)
+    assert data["analysis"]["N"] == 30
+    assert data["analysis"]["CoM"] == pytest.approx(report.com.tolist())
+    # additive new keys
+    assert len(data["analysis"]["r_centers"]) == len(report.r_centers)
+
+
+def test_export_yaml_accepts_plain_dict_still(tmp_path):
+    agg = _make_aggregate(2)
+    path = str(tmp_path / "plain.yaml")
+    export_yaml(agg, path, analysis_results={"Rg": 3.0})
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data["analysis"]["Rg"] == 3.0

@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 import pyFracAggregate as pfa
 
+pytestmark = pytest.mark.filterwarnings("ignore:placement=:DeprecationWarning")
+
 
 def test_cca_generation():
     agg = pfa.generate(n_particles=15, df=1.8, kf=1.3, method='cca')

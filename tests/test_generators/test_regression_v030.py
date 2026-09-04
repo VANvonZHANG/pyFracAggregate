@@ -1,0 +1,77 @@
+"""Bit-identity regression against recorded v0.3.0 outputs.
+
+These gates hold only while generation still draws from the global legacy
+numpy.random stream (deviation N9). The seed sweep in Task 7 switches the
+statistical anchors in test_anchors.py to the front.
+"""
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+pytestmark = [
+    pytest.mark.filterwarnings("ignore::DeprecationWarning"),
+    pytest.mark.skip(reason="superseded by test_anchors.py after the seed/RNG "
+                            "switch (plan deviation N9)"),
+]
+
+import pyFracAggregate as pfa
+
+FIX = Path(__file__).resolve().parents[1] / "fixtures"
+SNAP = np.load(FIX / "baseline_v030.npz")
+STATS = json.loads((FIX / "baseline_v030_stats.json").read_text())
+N, DF, KF = 100, 1.8, 1.3
+
+
+def _regenerate(case_kwargs):
+    np.random.seed(0)
+    return pfa.generate(n_particles=N, df=DF, kf=KF, **case_kwargs)
+
+
+def test_pca_default_bit_identical():
+    agg = _regenerate(dict(method="pca"))
+    assert np.array_equal(agg.positions, SNAP["pca_default"])
+
+
+def test_pca_random_bit_identical():
+    agg = _regenerate(dict(method="pca", placement="random"))
+    assert np.array_equal(agg.positions, SNAP["pca_random"])
+
+
+def test_cca_default_bit_identical():
+    agg = _regenerate(dict(method="cca"))
+    assert np.array_equal(agg.positions, SNAP["cca_default"])
+
+
+def test_cca_random_bit_identical():
+    agg = _regenerate(dict(method="cca", placement="random"))
+    assert np.array_equal(agg.positions, SNAP["cca_random"])
+
+
+def test_cca_poly_bit_identical():
+    dist = pfa.LognormalDistribution(1.0, 1.6)
+    np.random.seed(0)
+    agg = pfa.generate(n_particles=N, df=DF, kf=KF, method="cca", particle_dist=dist)
+    assert np.array_equal(agg.positions, SNAP["cca_poly"])
+
+
+from pyFracAggregate.core.scaling import MassScaling
+from pyFracAggregate.generators.cca import CCAGenerator
+
+
+def _constructed(dist):
+    return CCAGenerator(N, DF, KF, dist, 1e-5,
+                        scaling=MassScaling(DF, KF), placement="constructed").generate()
+
+
+def test_constructed_mono_bit_identical_to_old_fracval():
+    np.random.seed(0)
+    agg = _constructed(pfa.Monodisperse(1.0))
+    assert np.array_equal(agg.positions, SNAP["fracval_mono"])
+
+
+def test_constructed_poly_bit_identical_to_old_fracval():
+    np.random.seed(0)
+    agg = _constructed(pfa.LognormalDistribution(1.0, 1.6))
+    assert np.array_equal(agg.positions, SNAP["fracval_poly"])

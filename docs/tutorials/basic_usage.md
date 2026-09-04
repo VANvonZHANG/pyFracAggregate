@@ -3,13 +3,13 @@
 This page walks you through the complete pyFracAggregate pipeline — generate,
 analyze, visualize, and export — twice: first a monodisperse aggregate built
 with particle-cluster aggregation (PCA), then a polydisperse aggregate built
-with FracVAL. It is a static adaptation of the
+on the FracVAL coordinate. It is a static adaptation of the
 [demo notebook](https://github.com/vanvonzhang/pyFracAggregate/blob/main/examples/pyFracAggregate_demo.ipynb),
 which remains in `examples/` if you prefer an executable format.
 
 Every code block below was executed in the order shown, with
-pyFracAggregate 0.2.0 and `numpy.random.seed(0)` set before each generation
-step. The printed values are the real measured outputs of that run, and the
+pyFracAggregate 0.4.0 and `seed=0` passed to each generation call. The
+printed values are the real measured outputs of that run, and the
 embedded figures are the actual artifacts of those exact calls (saved under
 different file names in the docs tree). If you run the snippets yourself you
 will get the same numbers; with a different seed you get a different
@@ -27,23 +27,20 @@ uses pyvista, which is a base dependency.
 ### Generate the aggregate
 
 Start with [`pfa.generate()`](/api-reference/index.md#top-level-api), the
-single entry point for all four algorithms. We ask for 200 primary particles
-with a fractal dimension {math}`D_f = 1.8` and prefactor {math}`k_f = 1.9` —
-typical soot-like values (see
+single entry point for the whole coordinate system. We ask for 200 primary
+particles with a fractal dimension {math}`D_f = 1.8` and prefactor
+{math}`k_f = 1.9` — typical soot-like values (see
 [Morphology parameters](/background/index.md#morphology-parameters)) — using
-the `'pca'` method, a fast particle-cluster baseline.
+`method="pca"`, a fast particle-cluster baseline.
 
-Set the seed **before** calling `generate()`: generation is stochastic and
-draws from NumPy's global random state, so the seed is what makes a run
-reproducible (details in
+Pass `seed=` to `generate()`: generation is stochastic, and the seed is what
+makes a run reproducible (details in
 [Reproducibility and seeding](/user-guide/generators.md#reproducibility-and-seeding)).
 
 ```python
-import numpy as np
 import pyFracAggregate as pfa
 
-np.random.seed(0)
-agg = pfa.generate(n_particles=200, df=1.8, kf=1.9, method="pca")
+agg = pfa.generate(n_particles=200, df=1.8, kf=1.9, method="pca", seed=0)
 
 print(f"Particles: {agg.current_size}")
 print(f"Radii:     {agg.radii.min():.3f} to {agg.radii.max():.3f}")
@@ -54,12 +51,12 @@ print(f"Extent:    {extent[0]:.1f} x {extent[1]:.1f} x {extent[2]:.1f} {agg.leng
 ```text
 Particles: 200
 Radii:     1.000 to 1.000
-Extent:    37.0 x 27.0 x 27.3 nm
+Extent:    33.7 x 28.1 x 35.2 nm
 ```
 
 With no `particle_dist` argument the primaries are monodisperse with radius
 1.0 (in the default `length_unit` of nm), and 200 spheres at {math}`D_f = 1.8`
-span roughly 37 nm — an open, branched object, not a compact ball.
+span roughly 35 nm — an open, branched object, not a compact ball.
 
 ### Analyze morphology
 
@@ -67,30 +64,33 @@ span roughly 37 nm — an open, branched object, not a compact ball.
 gyration, center of mass, and — via the pair correlation function — an
 estimate of the fractal dimension, all in one call:
 
-```python
-results = pfa.analyze(agg)
+`analyze()` returns a typed `MorphologyReport` — read it by attribute:
 
-print(f"Rg:           {results['Rg']:.3f} {agg.length_unit}")
-print(f"CoM:          [{results['CoM'][0]:.2f}, {results['CoM'][1]:.2f}, {results['CoM'][2]:.2f}]")
-print(f"N:            {results['N']}")
-print(f"Df_estimated: {results['Df_estimated']:.3f}")
-print(f"R2:           {results['R2']:.4f}")
+```python
+report = pfa.analyze(agg)
+
+print(f"Rg:      {report.rg:.3f} {agg.length_unit}")
+print(f"CoM:     [{report.com[0]:.2f}, {report.com[1]:.2f}, {report.com[2]:.2f}]")
+print(f"N:       {report.n}")
+print(f"Df_est:  {report.df_est:.3f}")
+print(f"R2:      {report.r2:.4f}")
 ```
 
 ```text
-Rg:           13.274 nm
-CoM:          [13.42, -0.87, -3.09]
-N:            200
-Df_estimated: 1.714
-R2:           0.9643
+Rg:      13.274 nm
+CoM:     [-3.62, 4.92, 0.15]
+N:       200
+Df_est:  1.613
+R2:      0.9806
 ```
 
-Read the last two lines with care. The estimated {math}`D_f` is 1.714 against
-a request of 1.8, and {math}`R^2 = 0.96` says the log-log fit is good —
+Read the last two lines with care. The estimated {math}`D_f` is 1.613 against
+a request of 1.8, and {math}`R^2 = 0.98` says the log-log fit is good —
 {math}`R^2` measures fit quality, not agreement with the target. A single
-realization at moderate {math}`N` typically under-estimates the requested
-{math}`D_f`; average over several seeded realizations before quoting ensemble
-numbers ([Interpreting `Df_estimated` and `R2`](/user-guide/analysis.md#interpreting-df_estimated-and-r2)).
+realization at moderate {math}`N` typically deviates from the requested
+{math}`D_f` by a few tenths; average over several seeded realizations before
+quoting ensemble numbers
+([Interpreting `df_est` and `r2`](/user-guide/analysis.md#interpreting-df_est-and-r2)).
 
 ### Pair correlation function
 
@@ -115,7 +115,7 @@ pfa.plot_pair_correlation(
 ```
 
 ```text
-bins: 50, r up to 38.0 nm
+bins: 50, r up to 38.3 nm
 Plot saved to pcf_pca.png
 ```
 
@@ -124,7 +124,7 @@ Plot saved to pcf_pca.png
 
 The pair correlation function of the 200-particle PCA aggregate. Blue dots:
 measured {math}`C(r)`. Red line: power-law fit over the fractal regime
-(slope {math}`= D_f - 3`), giving {math}`D_f = 1.71`. Green dashed line:
+(slope {math}`= D_f - 3`), giving {math}`D_f = 1.61`. Green dashed line:
 reference slope for the requested {math}`D_f = 1.8`. Vertical lines mark the
 fit window (mean primary radius to {math}`R_g`).
 ```
@@ -165,7 +165,9 @@ workarounds are collected in
 Finally, persist the aggregate. `export_yaml` writes a full snapshot —
 particle data, units, and the generation parameters and analysis results you
 pass in (recording the seed makes the file traceable to an identical
-aggregate). `export_vtk` writes a lightweight point cloud for ParaView:
+aggregate). `export_yaml` accepts the `MorphologyReport` directly and
+serializes it under the legacy snapshot key names. `export_vtk` writes a
+lightweight point cloud for ParaView:
 
 ```python
 pfa.export_yaml(
@@ -173,28 +175,31 @@ pfa.export_yaml(
     "aggregate.yaml",
     generation_params={"method": "pca", "n_particles": 200,
                        "df": 1.8, "kf": 1.9, "seed": 0},
-    analysis_results=results,
+    analysis_results=report,
 )
 pfa.export_vtk(agg, "aggregate.vtk")
 ```
 
-This run produced a 21 KB `aggregate.yaml` and an 11 KB `aggregate.vtk`.
+This run produced a 23 KB `aggregate.yaml` and an 11 KB `aggregate.vtk`.
 Format guidance is in [Exporting data](/user-guide/io.md) — YAML for
 reproducibility, VTK point cloud for quick inspection, VTM MultiBlock when
 you need explicit sphere meshes.
 
-## Part 2 — polydisperse FracVAL aggregate
+## Part 2 — polydisperse FracVAL-coordinate aggregate
 
 Real soot primaries are not all the same size. Repeat the pipeline with a
-`LognormalDistribution` and the `'fracval'` method, which is designed for
-polydisperse primaries. Two things change in the call: the distribution and
-the method — everything downstream (`analyze`, plotting, export) is identical.
+`LognormalDistribution` on the FracVAL coordinate —
+`(method="cca", scaling="mass", placement="constructed")` — which is designed
+for polydisperse primaries. Two things change in the call: the distribution
+and the coordinate — everything downstream (`analyze`, plotting, export) is
+identical.
 
 ```python
-np.random.seed(0)
 poly = pfa.LognormalDistribution(mean=1.0, std=1.6)
 agg_poly = pfa.generate(
-    n_particles=256, df=1.8, kf=1.9, method="fracval", particle_dist=poly
+    n_particles=256, df=1.8, kf=1.9,
+    method="cca", scaling="mass", placement="constructed",
+    particle_dist=poly, seed=0,
 )
 
 print(f"Particles:   {agg_poly.current_size}")
@@ -204,39 +209,39 @@ print(f"Mean radius: {agg_poly.radii.mean():.3f}")
 
 ```text
 Particles:   256
-Radii:       0.301 to 3.065
-Mean radius: 1.134
+Radii:       0.232 to 4.225
+Mean radius: 1.120
 ```
 
 Two details worth noting:
 
 - `std` is the **geometric** standard deviation. A value of 1.6 spreads the
-  radii from 0.30 to 3.07 nm around a geometric mean of 1.0 nm — roughly a
-  factor of ten between the smallest and largest primary. Values at or below
-  1.0 collapse to monodisperse
+  radii from 0.23 to 4.23 nm around a geometric mean of 1.0 nm — roughly a
+  factor of eighteen between the smallest and largest primary. Values at or
+  below 1.0 collapse to monodisperse
   ([Particle size distributions](/user-guide/generators.md#particle-size-distributions)).
-- FracVAL accepts any particle count ({math}`N \leq 8` internally falls back
-  to a PCA call). Only `'tdcca'` requires a power of two. 256 is simply a
-  typical soot-aggregate size.
+- The coordinate accepts any particle count ({math}`N \leq 8` internally
+  falls back to a PCA call). 256 is simply a typical soot-aggregate size.
+  (`method="fracval"` is a deprecated alias for exactly this coordinate.)
 
 ### Analyze and compare
 
 ```python
-results_poly = pfa.analyze(agg_poly)
+report_poly = pfa.analyze(agg_poly)
 
-print(f"Rg:           {results_poly['Rg']:.3f} {agg_poly.length_unit}")
-print(f"CoM:          [{results_poly['CoM'][0]:.2f}, {results_poly['CoM'][1]:.2f}, {results_poly['CoM'][2]:.2f}]")
-print(f"N:            {results_poly['N']}")
-print(f"Df_estimated: {results_poly['Df_estimated']:.3f}")
-print(f"R2:           {results_poly['R2']:.4f}")
+print(f"Rg:      {report_poly.rg:.3f} {agg_poly.length_unit}")
+print(f"CoM:     [{report_poly.com[0]:.2f}, {report_poly.com[1]:.2f}, {report_poly.com[2]:.2f}]")
+print(f"N:       {report_poly.n}")
+print(f"Df_est:  {report_poly.df_est:.3f}")
+print(f"R2:      {report_poly.r2:.4f}")
 ```
 
 ```text
-Rg:           17.282 nm
-CoM:          [5.98, 11.78, 4.39]
-N:            256
-Df_estimated: 1.676
-R2:           0.9770
+Rg:      17.068 nm
+CoM:     [-9.22, -16.27, 0.73]
+N:       256
+Df_est:  1.871
+R2:      0.9780
 ```
 
 ```python
@@ -246,40 +251,40 @@ pfa.export_render(agg_poly, "fracval_render.png", color="dimgray", window_size=(
 ```{figure} ../_static/tutorial_fracval_render.png
 :alt: Rendered 3D view of the polydisperse FracVAL aggregate
 
-The 256-particle polydisperse FracVAL aggregate. Primary radii follow a
-lognormal distribution with geometric mean 1.0 nm and geometric standard
-deviation 1.6; the subcluster-merge construction gives a lumpier, more
-branched texture than the PCA aggregate of Part 1.
+The 256-particle polydisperse aggregate on the FracVAL coordinate. Primary
+radii follow a lognormal distribution with geometric mean 1.0 nm and
+geometric standard deviation 1.6; the subcluster-merge construction gives a
+lumpier, more branched texture than the PCA aggregate of Part 1.
 ```
 
 Side by side, the two runs differ in three ways:
 
-| | Part 1 (PCA) | Part 2 (FracVAL) |
+| | Part 1 (PCA) | Part 2 (FracVAL coordinate) |
 |---|---|---|
-| Primaries | 1.000 nm (monodisperse) | 0.301–3.065 nm, lognormal |
-| {math}`R_g` | 13.274 nm | 17.282 nm |
-| `Df_estimated` ({math}`R^2`) | 1.714 (0.9643) | 1.676 (0.9770) |
+| Primaries | 1.000 nm (monodisperse) | 0.232–4.225 nm, lognormal |
+| {math}`R_g` | 13.274 nm | 17.068 nm |
+| `df_est` ({math}`R^2`) | 1.613 (0.9806) | 1.871 (0.9780) |
 
 - **Polydispersity.** The radius spread is the whole point of Part 2: large
   primaries anchor the cluster while small ones fill the crevices, which is
   what real combustion soot looks like
   ([Primary particles](/background/index.md#primary-particles)).
 - **Construction.** PCA accretes one particle at a time onto a growing
-  cluster; FracVAL grows small subclusters first and merges them
-  cluster-to-cluster, so the render shows a lumpier, more branched object
-  ([The four methods](/background/index.md#the-four-methods)).
+  cluster; the FracVAL coordinate grows small subclusters first and merges
+  them cluster-to-cluster, so the render shows a lumpier, more branched
+  object ([The coordinate system](/background/index.md#the-coordinate-system)).
 - **Size and Df.** With the same {math}`D_f` and {math}`k_f` requested (and a
   somewhat larger {math}`N`), the FracVAL cluster has a larger {math}`R_g`
-  (17.3 vs 13.3 nm) — the scaling-law targets are statistical, not exact per
-  realization — and
-  its measured {math}`D_f` is again below the 1.8 request (1.68, with a tight
-  fit at {math}`R^2 = 0.98`). Same lesson as Part 1: one realization is one
-  sample; seed several and average when you report morphology.
+  (17.1 vs 13.3 nm) — the scaling-law targets are statistical, not exact per
+  realization — and this realization's measured {math}`D_f` (1.87) happens to
+  land *above* the 1.8 request where Part 1's landed below (1.61). Same
+  lesson either way: one realization is one sample; seed several and average
+  when you report morphology.
 
 ## Where to go next
 
 - [Generating aggregates](/user-guide/generators.md) — all `generate()`
-  parameters, the other two methods, placement strategies, seeding.
+  parameters, the scaling axis, placement strategies, seeding.
 - [Analyzing aggregates](/user-guide/analysis.md) — the individual analysis
   functions and choosing the fit window.
 - [Exporting data](/user-guide/io.md) — the five export formats, ParaView

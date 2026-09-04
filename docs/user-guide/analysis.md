@@ -5,46 +5,55 @@ The one-call entry point,
 morphological properties of an aggregate:
 
 ```python
-import numpy as np
 import pyFracAggregate as pfa
 
-np.random.seed(0)
-agg = pfa.generate(256, df=1.8, kf=1.9, method="pca")
+agg = pfa.generate(256, df=1.8, kf=1.9, method="pca", seed=0)
 
-results = pfa.analyze(agg)
-print(results)
+report = pfa.analyze(agg)   # MorphologyReport
+print(report.rg, report.df_est, report.r2)
 ```
 
 which for this seed gives (values rounded):
 
 ```text
-Rg           = 15.229
-CoM          = [14.755, -1.247, -3.935]
-N            = 256
-Df_estimated = 1.654
-R2           = 0.980
+rg      = 15.230
+com     = [-3.788, 5.321, -0.262]
+n       = 256
+df_est  = 1.493
+r2      = 0.981
 ```
 
-| Key | Meaning |
-|---|---|
-| `Rg` | Radius of gyration (float, in `length_unit`). |
-| `CoM` | Center of mass, shape `(3,)` array. |
-| `N` | Number of particles (`aggregate.current_size`). |
-| `Df_estimated` | Fractal dimension estimated from the pair correlation function. |
-| `R2` | Coefficient of determination of the underlying log-log fit. |
+`analyze()` returns a typed `MorphologyReport` (a dataclass; pass it through
+`dataclasses.asdict` when you need a plain dict):
 
-## Interpreting `Df_estimated` and `R2`
+| Attribute | Meaning |
+|---|---|
+| `rg` | Radius of gyration (float, in `length_unit`). |
+| `com` | Center of mass, shape `(3,)` array. |
+| `n` | Number of particles (`aggregate.current_size`). |
+| `df_est` | Fractal dimension estimated from the pair correlation function. |
+| `r2` | Coefficient of determination of the underlying log-log fit. |
+| `r_centers` | Bin centers of the pair correlation `r` grid. |
+| `pair_correlation` | The `C(r)` values on that grid. |
+
+`export_yaml(agg, path, analysis_results=report)` serializes the report
+under the legacy snapshot key names (`Rg`, `CoM`, `N`, `Df_estimated`,
+`R2`, plus `r_centers`/`pair_correlation`), keeping YAML snapshots
+field-compatible with earlier versions. (Until v0.3 the report was a plain
+dict with those capitalized keys.)
+
+## Interpreting `df_est` and `r2`
 
 The estimate comes from a log-log linear fit of the pair correlation function
 {math}`C(r)`. Because {math}`C(r) \propto r^{D_f - 3}` in the fractal regime,
 the fitted slope equals {math}`D_f - 3` and the reported
-`Df_estimated` is `slope + 3` — see
+`df_est` is `slope + 3` — see
 [the background chapter](/background/index.md#morphology-parameters) for the
 theory. The fit window used by `analyze()` runs from the mean primary radius
 to {math}`R_g`.
 
 Two caveats learned from the example above: a single realization at moderate
-{math}`N` under-estimates the requested {math}`D_f` (here 1.65 for a request
+{math}`N` under-estimates the requested {math}`D_f` (here 1.49 for a request
 of 1.8), and `R2` measures the fit quality, not the agreement with the
 requested `df`. Average `Df_estimated` over several seeded realizations before
 quoting ensemble numbers.

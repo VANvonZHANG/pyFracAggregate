@@ -1,6 +1,6 @@
 # Generating aggregates
 
-All four generation algorithms share one entry point, the factory function
+All generation algorithms share one entry point, the factory function
 [`pfa.generate()`](/api-reference/index.md#top-level-api):
 
 ```python
@@ -9,6 +9,11 @@ import pyFracAggregate as pfa
 agg = pfa.generate(n_particles=64, df=1.8, kf=1.9)
 ```
 
+`generate()` selects an algorithm on **three orthogonal axes** — `method`
+(the aggregation schedule), `scaling` (how the parallel-axis target distances
+are weighted), and `placement` (how contacts are found) — so every classical
+algorithm from the literature is one coordinate in this system.
+
 ## Parameters
 
 | Parameter | Type | Default | Description |
@@ -16,10 +21,12 @@ agg = pfa.generate(n_particles=64, df=1.8, kf=1.9)
 | `n_particles` | `int` | — | Target number of primary particles. |
 | `df` | `float` | — | Fractal dimension {math}`D_f`. |
 | `kf` | `float` | — | Fractal prefactor {math}`k_f`. |
-| `method` | `str` | `'pca'` | Algorithm: `'pca'`, `'cca'`, `'fracval'`, or `'tdcca'`. |
+| `method` | `str` | `'pca'` | Algorithm family: `'pca'` (particle-cluster) or `'cca'` (cluster-cluster). |
+| `scaling` | `str` | `'mass'` | Parallel-axis weighting: `'count'` (Filippov 2000) or `'mass'` (Morán 2019). |
+| `placement` | `str` | `'solved'` | Contact strategy: `'sampled'`, `'solved'`, or `'constructed'` (cca only). |
 | `particle_dist` | `ParticleDistribution` | `None` | Primary-particle radius distribution; `None` means `Monodisperse(1.0)`. |
 | `overlap_tolerance` | `float` | `1e-5` | Maximum allowed interpenetration between sphere surfaces (in length units). |
-| `placement` | `str` | `'algebraic'` | Contact-placement strategy: `'algebraic'` or `'random'`. |
+| `seed` | `int` | `None` | Seed for bit-reproducible generation; `None` draws fresh entropy. |
 
 For soot-like systems, typical values are {math}`D_f \approx 1.6`–`1.9` and
 {math}`k_f \approx 1.2`–`2.4`; the science behind both parameters is in
@@ -29,28 +36,48 @@ Keyword-only unit arguments are forwarded to the generator:
 `length_unit='nm'`, `mass_unit='g'`, and `density=1.0` (see
 [Units](analysis.md#units)).
 
-## Choosing a method
+## The coordinate system
 
-The four `method` keywords cover the two classical algorithmic families —
-particle-cluster (`'pca'`) and cluster-cluster
-(`'cca'`, `'fracval'`, `'tdcca'`) aggregation. The trade-offs (polydispersity support, Df targeting,
-typical use) are compared in [Choosing a method](/background/index.md#choosing-a-method);
-as a rule of thumb: `pca` for fast scans, `fracval` for polydisperse soot
-models, `cca` for monodisperse hierarchical structure, `tdcca` to reproduce
-Thouy & Jullien structures.
+| Literature method | Coordinate |
+|---|---|
+| DLA-style PCA | `(pca, count, solved)` |
+| Filippov CCA (2000) | `(cca, count, sampled)` |
+| FLAGE-style CCA (Skorupski 2014) | `(cca, count, solved)` |
+| FracVAL (Morán 2019) | `(cca, mass, constructed)` |
 
 ```python
-agg_pca    = pfa.generate(32, 1.78, 1.9, method="pca")
-agg_cca    = pfa.generate(32, 1.78, 1.9, method="cca")
-agg_fracval = pfa.generate(32, 1.78, 1.9, method="fracval")
-agg_tdcca  = pfa.generate(32, 1.78, 1.9, method="tdcca")
+agg_dla      = pfa.generate(32, 1.78, 1.9, method="pca",  scaling="count", placement="solved")
+agg_filippov = pfa.generate(32, 1.78, 1.9, method="cca",  scaling="count", placement="sampled")
+agg_flage    = pfa.generate(32, 1.78, 1.9, method="cca",  scaling="count", placement="solved")
+agg_fracval  = pfa.generate(32, 1.78, 1.9, method="cca",  scaling="mass",  placement="constructed")
 ```
 
-```{warning}
-`method="tdcca"` requires `n_particles` to be a power of two (the Thouy &
-Jullien algorithm builds the cluster by hierarchically merging pairs of
-equal-size subclusters). Any other value raises `ValueError`.
+As a rule of thumb: `pca` for fast scans, `(cca, mass, constructed)` for
+polydisperse soot models (the FracVAL coordinate), `(cca, count, sampled)`
+to reproduce Filippov-style generation. The trade-offs are compared in
+[Choosing a method](/background/index.md#choosing-a-method).
+
+```{note}
+`method='fracval'` is a **deprecated alias** for
+`(cca, mass, constructed)` — it emits a `DeprecationWarning` and will be
+removed in 1.0. `method='tdcca'` (Thouy & Jullien) was **removed in v0.4**
+without a replacement; pin `pyFracAggregate<0.4` if you need it.
 ```
+
+## The scaling axis
+
+The parallel-axis theorem splits every cluster by *weights*: counting each
+primary as one (`scaling='count'`, the Filippov 2000 original) or weighting
+by mass (`scaling='mass'`, physically correct for polydisperse primaries,
+following Morán 2019). Both have scientific semantics — count reproduces the
+original papers, mass handles size distributions honestly — so the axis is
+exposed rather than hard-wired.
+
+For a **monodisperse** distribution the two are mathematically equivalent
+(masses are proportional to counts), so the `'mass'` default changes nothing
+for monodisperse users. For **polydisperse** input, `'mass'` is the default
+since v0.4 — this is a behavior change from v0.3, where `cca` used count
+weighting (`'fracval'` was the only mass-weighted path).
 
 ## Particle size distributions
 
@@ -93,26 +120,31 @@ sintered = pfa.generate(32, 1.8, 1.9, overlap_tolerance=0.3)
 ## Placement strategy
 
 The `placement` argument selects how each new particle or subcluster is
-brought into contact with the existing aggregate; it takes effect for
-`method='pca'` and `method='cca'` (`fracval` and `tdcca` embed their own
-contact logic). See [Placement strategies](/background/index.md#placement-strategies)
-for the algorithmic detail.
+brought into contact with the existing aggregate. The names describe how the
+contact comes to be: it is **solved** in closed form, **sampled** by Monte
+Carlo, or **constructed** from a specified contact pair.
 
-- `'algebraic'` (default) — FLAGE-style exact touching-point computation with
-  a Monte Carlo fallback. Contacts are near-exact and target distances are
-  honored precisely.
-- `'random'` — pure Monte Carlo sampling with gradual tolerance relaxation
-  until a candidate satisfies the overlap tolerance. Contacts are slightly
-  fuzzier, and generation is typically several times slower at moderate
-  {math}`N` (the relaxed retries add up).
+- `'solved'` (default) — FLAGE-style closed-form tangency computation with a
+  Monte Carlo fallback (Skorupski et al., 2014). Contacts are near-exact and
+  target distances are honored precisely.
+- `'sampled'` — pure Monte Carlo sampling with gradual tolerance relaxation
+  (Filippov et al., 2000). Contacts are slightly fuzzier, and generation is
+  typically several times slower at moderate {math}`N`.
+- `'constructed'` — FracVAL contact construction (Morán et al., 2019): a
+  specified contact pair is selected and the merging cluster is rotated and
+  translated into place, with a center-of-mass check. **Cluster merging
+  only** — `method='pca'` with `placement='constructed'` raises
+  `ValueError`.
 
 ```python
-agg = pfa.generate(32, 1.8, 1.9, placement="random")
+agg = pfa.generate(32, 1.8, 1.9, placement="sampled")
 ```
 
 Practical guidance: keep the default — it is both more precise and faster.
-Switch to `'random'` mainly to reproduce older Filippov-style generation
-behavior.
+Switch to `'sampled'` to reproduce older Filippov-style generation, and to
+`'constructed'` for the FracVAL coordinate. The deprecated names
+`'algebraic'` (→ `'solved'`) and `'random'` (→ `'sampled'`) still resolve
+with a warning and will be removed in 1.0.
 
 ## Working with the `Aggregate`
 
@@ -132,56 +164,51 @@ agg.to_numpy()       # copy of the (N, 5) data block
 ```
 
 Note the accessor for the particle count is `current_size` (the analysis
-helper `pfa.analyze` returns it as `"N"`).
+helper `pfa.analyze` returns it as `report.n`).
 
 ## Factory function or generator classes
 
-`pfa.generate()` is a thin factory over four generator classes with an
+`pfa.generate()` is a thin factory over two generator classes with an
 identical constructor shape —
-[`PCAGenerator`, `CCAGenerator`, `FracVALGenerator`, `ThouyJullienGenerator`](/api-reference/index.md#generators).
+[`PCAGenerator`, `CCAGenerator`](/api-reference/index.md#generators).
 Instantiating a class directly is equivalent but makes the full constructor
 surface explicit, including the unit parameters that `generate()` only
-forwards as keywords:
+forwards as keywords. The `scaling` and `placement` arguments also accept
+**instances** (`CountScaling()`/`MassScaling()`, any `PlacementStrategy`)
+pandas-style, for custom strategies:
 
 ```python
-gen = pfa.PCAGenerator(
+from pyFracAggregate.core.scaling import MassScaling
+
+gen = pfa.CCAGenerator(
     n_particles=32, df=1.8, kf=1.9,
     particle_dist=pfa.Monodisperse(1.0),
+    scaling=MassScaling(1.8, 1.9),
     length_unit="um", mass_unit="kg", density=1.8,
+    seed=42,
 )
 agg = gen.generate()
 ```
 
 ## Reproducibility and seeding
 
-Generation is stochastic. All generators draw randomness from NumPy's
-**global** legacy random state (`numpy.random.*`); there is no `seed`
-parameter in the API. Consequently:
-
-- Seeding is done with `numpy.random.seed(...)` **immediately before each
-  `generate()` call** (or before constructing and running a generator class —
-  the draws happen inside `generate()`).
-- `numpy.random.default_rng()` and other new-style `Generator` objects do
-  **not** affect generation, because the code never consults them.
+Generation is stochastic. All generators draw randomness from a private
+NumPy `Generator` created from the `seed` argument — generation never
+consults the **global** `numpy.random` state, so `numpy.random.seed(...)` has
+no effect on generation. (Calling `distribution.sample(n)` or
+`random_point_on_circle()` directly, without a generator, still uses the
+global stream.)
 
 ```python
-import numpy as np
-
-np.random.seed(42)
-first = pfa.generate(32, 1.8, 1.9)
-
-np.random.seed(42)
-second = pfa.generate(32, 1.8, 1.9)
+first = pfa.generate(32, 1.8, 1.9, seed=42)
+second = pfa.generate(32, 1.8, 1.9, seed=42)
 
 print(np.array_equal(first.positions, second.positions))  # True
 ```
 
-This was verified for all four methods, both placement strategies, and
-lognormal size distributions: same seed → bit-identical particle data;
-different seed → a different realization. Note that for `pca` the radius of
-gyration is essentially fixed by `(n_particles, df, kf)` — seed-dependent
-variation appears only in the fourth to fifth decimal place (each particle
-sits at exactly the target distance from the running geometric center, so
-only the CoM-vs-running-center correction varies with seed). The seed
-varies the cluster's texture (orientations and contact choices), not its
-overall size.
+Same seed → bit-identical particle data (positions, radii, masses) for any
+legal coordinate; different seed → a different realization; `seed=None` →
+fresh entropy every call. Note that for `pca` the radius of gyration is
+essentially fixed by `(n_particles, df, kf)` — each particle sits at exactly
+the target distance from the running center, so the seed varies the
+cluster's texture (orientations and contact choices), not its overall size.

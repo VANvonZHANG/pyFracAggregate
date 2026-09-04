@@ -1,10 +1,13 @@
-"""Grid declarations for the three paper experiments (see spec Sec. 2)."""
+"""Grid declarations for the paper experiments (see spec Sec. 2).
+
+v0.4 coordinate system: method pca|cca, placement solved|sampled|constructed
+(the former "fracval" experiment is (cca, mass, constructed); tdcca rows were
+removed with the algorithm in v0.4)."""
 from pyFracAggregate import Monodisperse, LognormalDistribution
 
 PAIRS = [(1.40, 1.80), (1.79, 1.40), (2.40, 0.80), (1.8, 1.3)]
 FULL_N = (50, 100, 500, 1024)
 SMOKE_N = (50, 100)
-TDCCA_N = (128, 512, 1024)
 SEEDS_FULL = range(10)
 SEEDS_SMOKE = (0, 1)
 BETAS = (0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0)
@@ -41,17 +44,13 @@ def build_grid(tier: str, exp: str = "all", random_full: bool = False):
         for df, kf in PAIRS:
             for N in n_mono:
                 for s in seeds:
-                    rows.append(_row(1, "pca", "algebraic", None, N, df, kf, 1.0, s))
-                    rows.append(_row(1, "cca", "algebraic", None, N, df, kf, 1.0, s))
-                    rows.append(_row(1, "fracval", "algebraic", None, N, df, kf, 1.0, s))
+                    rows.append(_row(1, "pca", "solved", None, N, df, kf, 1.0, s))
+                    rows.append(_row(1, "cca", "solved", None, N, df, kf, 1.0, s))
+                    rows.append(_row(1, "cca", "constructed", None, N, df, kf, 1.0, s))
                     if N <= 500 or random_full:
-                        rows.append(_row(1, "pca", "random", None, N, df, kf, 1.0, s))
-                        rows.append(_row(1, "cca", "random", None, N, df, kf, 1.0, s))
-            # tdcca (powers of two)
-            for N in ([128] if smoke else TDCCA_N):
-                for s in ([0] if smoke else seeds):
-                    rows.append(_row(1, "tdcca", "algebraic", None, N, df, kf, 1.0, s))
-        # poly rows (fracval only)
+                        rows.append(_row(1, "pca", "sampled", None, N, df, kf, 1.0, s))
+                        rows.append(_row(1, "cca", "sampled", None, N, df, kf, 1.0, s))
+        # poly rows (constructed only)
         for df, kf, sg, nvals in POLY_ROWS:
             for N in nvals:
                 use = (N == min(nvals)) if smoke else True
@@ -59,13 +58,13 @@ def build_grid(tier: str, exp: str = "all", random_full: bool = False):
                     continue
                 svals = (0,) if smoke else seeds
                 for s in svals:
-                    rows.append(_row(1, "fracval", "algebraic", None, N, df, kf, sg, s))
+                    rows.append(_row(1, "cca", "constructed", None, N, df, kf, sg, s))
     if exp in ("all", "3"):
         beta_N = (100,) if smoke else (100, 500)
         for b in BETAS:
             for N in beta_N:
                 for s in seeds:
-                    rows.append(_row(3, "cca", "algebraic", b, N, 1.8, 1.3, 1.0, s))
+                    rows.append(_row(3, "cca", "solved", b, N, 1.8, 1.3, 1.0, s))
     return rows
 
 
@@ -74,16 +73,14 @@ def _rank(r: dict) -> int:
     if r["exp"] == 3:
         return 20
     m, p, N, sg = r["method"], r["placement"], r["N"], r["sg"]
-    if m == "tdcca":
-        return 0
     if m == "pca":
-        return (5 if N <= 500 else 30) + (0 if p == "algebraic" else 1)
-    if m == "fracval":
+        return (5 if N <= 500 else 30) + (0 if p == "solved" else 1)
+    if m == "cca" and p == "constructed":
         if sg > 1.0:
             return 15  # poly rows (incl. N=1024) before beta sweep, per spec order
         return 10 if N <= 500 else 35
     if m == "cca":
-        return (25 if N <= 500 else 40) + (0 if p == "algebraic" else 1)
+        return (25 if N <= 500 else 40) + (0 if p == "solved" else 1)
     raise ValueError(r)
 
 

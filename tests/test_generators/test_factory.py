@@ -2,13 +2,12 @@ import pytest
 import pyFracAggregate as pfa
 
 
-@pytest.mark.parametrize("method", ['pca', 'cca', 'fracval', 'tdcca'])
+@pytest.mark.parametrize("method", ['pca', 'cca'])
 def test_all_methods_generate(method):
-    n = 16 if method == 'tdcca' else 30
-    agg = pfa.generate(n_particles=n, df=1.8, kf=1.3, method=method)
-    assert agg.current_size == n
-    assert agg.positions.shape == (n, 3)
-    assert agg.radii.shape == (n,)
+    agg = pfa.generate(n_particles=30, df=1.8, kf=1.3, method=method, seed=0)
+    assert agg.current_size == 30
+    assert agg.positions.shape == (30, 3)
+    assert agg.radii.shape == (30,)
 
 
 def test_unknown_method_raises():
@@ -27,5 +26,6 @@ def test_removed_flage_cca_raises_helpful_error():
 
 
 def test_placement_param_forwarded():
-    agg = pfa.generate(n_particles=20, df=1.8, kf=1.3, method='pca', placement='random')
+    agg = pfa.generate(n_particles=20, df=1.8, kf=1.3, method='pca',
+                       placement='sampled', seed=0)
     assert agg.current_size == 20

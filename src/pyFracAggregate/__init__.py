@@ -1,16 +1,21 @@
 """pyFracAggregate: generation and analysis of synthetic fractal aggregates.
 
 This library builds clusters of spherical primary particles (soot-like,
-aerosol-like) with tunable fractal morphology, unifying four classical
-generation algorithms: particle-cluster aggregation (PCA), cluster-cluster
-aggregation (CCA), FracVAL, and the lattice-based Thouy & Jullien method.
+aerosol-like) with tunable fractal morphology, unifying the classical
+generation algorithm families — particle-cluster aggregation (PCA) and
+cluster-cluster aggregation (CCA) — on three orthogonal axes: method,
+scaling (count/mass), and placement (sampled/solved/constructed).
 It also provides morphological analysis (radius of gyration, pair correlation
 function, fractal-dimension estimation) and export to YAML, VTK/VTM, rendered
 images, and rotation videos.
 """
 
+from dataclasses import dataclass
+from typing import Literal
+
 import numpy as np
 from pyFracAggregate.core.aggregate import Aggregate
+from pyFracAggregate.core.distributions import ParticleDistribution
 from pyFracAggregate.generators.factory import get_generator
 from pyFracAggregate.core.distributions import Monodisperse, LognormalDistribution
 from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
@@ -24,23 +29,40 @@ from pyFracAggregate.io.data import export_yaml
 from pyFracAggregate.io.visualization import export_render, export_rotation_video
 from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
-from pyFracAggregate.generators.fracval import FracVALGenerator
-from pyFracAggregate.generators.tdcca import ThouyJullienGenerator
-from pyFracAggregate.generators.placement.algebraic import AlgebraicPlacement
-from pyFracAggregate.generators.placement.random_ import RandomPlacement
+from pyFracAggregate.generators.placement.solved import SolvedPlacement
+from pyFracAggregate.generators.placement.sampled import SampledPlacement
+from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Fan Zhang"
+
+
+@dataclass
+class MorphologyReport:
+    """Typed morphology summary of an aggregate (spec 2.5, deviation N3).
+
+    Attribute names are snake_case; `export_yaml` maps them to the legacy
+    capitalized snapshot keys ("Rg", "Df_estimated", ...).
+    """
+    rg: float
+    df_est: float
+    r2: float
+    r_centers: np.ndarray
+    pair_correlation: np.ndarray
+    com: np.ndarray
+    n: int
 
 def generate(
     n_particles: int,
     df: float,
     kf: float,
-    method: str = 'pca',
-    particle_dist = None,
+    method: Literal["pca", "cca"] = "pca",
+    scaling: Literal["count", "mass"] = "mass",
+    placement: Literal["sampled", "solved", "constructed"] = "solved",
+    particle_dist: ParticleDistribution | None = None,
     overlap_tolerance: float = 1e-5,
-    placement: str = 'algebraic',
-    **kwargs
+    seed: int | None = None,
+    **kwargs,
 ) -> Aggregate:
     """
     High-level API to generate a fractal aggregate.
@@ -49,10 +71,17 @@ def generate(
         n_particles (int): Target number of particles.
         df (float): Fractal dimension (typically 1.5 - 2.5).
         kf (float): Fractal prefactor (typically 1.0 - 2.0).
-        method (str): Algorithm to use ('pca', 'cca', 'fracval', 'tdcca').
+        method (str): Algorithm family: 'pca' (particle-cluster) or
+            'cca' (cluster-cluster). 'fracval' is a deprecated alias for
+            (cca, mass, constructed).
+        scaling (str): 'count' (Filippov 2000 count weighting) or 'mass'
+            (Moran 2019 mass weighting; polydispersity-correct). Default 'mass'.
+        placement (str): 'sampled' (Monte Carlo), 'solved' (closed-form
+            tangency; default), or 'constructed' (FracVAL contact
+            construction; cca only).
         particle_dist: Particle radius distribution (defaults to Monodisperse(1.0)).
         overlap_tolerance (float): Allowed overlap between spheres.
-        placement (str): Placement strategy ('algebraic' or 'random').
+        seed (int): Seed for reproducible generation (None = fresh entropy).
 
     Returns:
         Aggregate: The generated fractal aggregate.
@@ -65,35 +94,41 @@ def generate(
         n_particles=n_particles,
         df=df,
         kf=kf,
+        scaling=scaling,
+        placement=placement,
         particle_dist=particle_dist,
         overlap_tolerance=overlap_tolerance,
-        placement=placement,
+        seed=seed,
         **kwargs
     )
 
     return generator.generate()
 
-def analyze(aggregate: Aggregate):
+def analyze(aggregate: Aggregate) -> MorphologyReport:
     """
-    Compute core morphological properties.
+    Compute the core morphological properties of an aggregate.
     """
     rg = radius_of_gyration(aggregate)
     r_centers, c_r = pair_correlation_function(aggregate)
-    df_est, r2, _ = estimate_fractal_dimension(r_centers, c_r,
-                                               r_min=np.mean(aggregate.radii),
-                                               r_max=rg)
+    df_est, r2, _ = estimate_fractal_dimension(
+        r_centers, c_r,
+        r_min=float(np.mean(aggregate.radii)), r_max=rg,
+    )
+    return MorphologyReport(
+        rg=rg,
+        df_est=df_est,
+        r2=r2,
+        r_centers=r_centers,
+        pair_correlation=c_r,
+        com=center_of_mass(aggregate),
+        n=aggregate.current_size,
+    )
 
-    return {
-        "Rg": rg,
-        "CoM": center_of_mass(aggregate),
-        "N": aggregate.current_size,
-        "Df_estimated": df_est,
-        "R2": r2
-    }
 
 __all__ = [
     "generate",
     "analyze",
+    "MorphologyReport",
     "Aggregate",
     "Monodisperse",
     "LognormalDistribution",
@@ -109,8 +144,7 @@ __all__ = [
     "export_vtk",
     "PCAGenerator",
     "CCAGenerator",
-    "FracVALGenerator",
-    "ThouyJullienGenerator",
-    "AlgebraicPlacement",
-    "RandomPlacement",
+    "SolvedPlacement",
+    "SampledPlacement",
+    "ConstructedPlacement",
 ]
