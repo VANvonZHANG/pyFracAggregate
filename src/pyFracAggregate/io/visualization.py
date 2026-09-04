@@ -45,6 +45,61 @@ def _framing_distance(bounds: Sequence[float]) -> float:
     return max(length, 1.0) * 1.5
 
 
+def _build_plotter(
+    aggregate: Aggregate,
+    *,
+    color: str,
+    opacity: float,
+    color_by: str | None,
+    cmap: str,
+    background: str,
+    window_size: tuple[int, int],
+) -> pv.Plotter:
+    """Assemble an off-screen Plotter with the aggregate mesh and styling.
+
+    Args:
+        aggregate: The fractal aggregate to render.
+        color: Solid sphere color; ignored when color_by="radius" (pyvista
+            scalars take precedence over a solid color).
+        opacity: Sphere opacity (0.0 to 1.0).
+        color_by: None (solid color) or "radius" (colormap over monomer radii).
+        cmap: Colormap name for color_by="radius".
+        background: Background color name or hex.
+        window_size: (width, height) in pixels.
+
+    Raises:
+        ValueError: If the aggregate is empty or color_by is invalid.
+    """
+    if aggregate.current_size == 0:
+        raise ValueError("Cannot render an empty aggregate (current_size == 0).")
+    if color_by not in (None, "radius"):
+        raise ValueError(f"color_by must be None or 'radius', got: {color_by!r}")
+
+    plotter = pv.Plotter(off_screen=True, window_size=list(window_size))
+    try:
+        plotter.set_background(background)  # type: ignore[arg-type]  # pyvista stub quirk
+        mesh = _build_sphere_mesh(aggregate)
+        if color_by == "radius":
+            # MultiBlock scalars need a same-named array on every block; the
+            # combined mesh gets one actor and one shared color scale.
+            for block, radius in zip(mesh, aggregate.radii):
+                block.cell_data["radius"] = np.full(block.n_cells, float(radius))
+            combined = mesh.combine(merge_points=False)
+            r_min = float(aggregate.radii.min())
+            r_max = float(aggregate.radii.max())
+            plotter.add_mesh(
+                combined, scalars="radius",
+                cmap=cmap,  # type: ignore[arg-type]  # pyvista stub quirk
+                clim=(r_min, r_max), opacity=opacity,
+            )
+        else:
+            plotter.add_mesh(mesh, color=color, opacity=opacity)
+        return plotter
+    except Exception:
+        plotter.close()
+        raise
+
+
 def export_render(
     aggregate: Aggregate,
     path: str,

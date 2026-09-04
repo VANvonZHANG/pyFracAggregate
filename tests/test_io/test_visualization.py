@@ -5,6 +5,7 @@ import pytest
 
 import pyFracAggregate as pfa
 from pyFracAggregate.io.visualization import (
+    _build_plotter,
     _framing_distance,
     _orbit_camera_position,
 )
@@ -49,3 +50,45 @@ class TestFramingDistance:
 
     def test_degenerate_bounds_fallback(self):
         assert _framing_distance((0.0, 0.0, 0.0, 0.0, 0.0, 0.0)) == 1.5
+
+
+class TestBuildPlotter:
+    def test_solid_color_mesh_blocks_match_particles(self, small_aggregate):
+        plotter = _build_plotter(
+            small_aggregate, color="lightblue", opacity=0.8, color_by=None,
+            cmap="viridis", background="white", window_size=(320, 240),
+        )
+        try:
+            assert len(plotter.meshes) == 1
+            assert len(plotter.meshes[0]) == small_aggregate.current_size
+        finally:
+            plotter.close()
+
+    def test_color_by_radius_attaches_scalar_data(self, small_aggregate):
+        plotter = _build_plotter(
+            small_aggregate, color="lightblue", opacity=0.8, color_by="radius",
+            cmap="viridis", background="white", window_size=(320, 240),
+        )
+        try:
+            assert len(plotter.meshes) == 1
+            data = plotter.meshes[0]
+            assert "radius" in data.cell_data
+            radii = np.unique(data.cell_data["radius"])
+            assert np.all(np.isin(radii, small_aggregate.radii))
+        finally:
+            plotter.close()
+
+    def test_empty_aggregate_raises(self):
+        empty = pfa.Aggregate(max_particles=5)
+        with pytest.raises(ValueError, match="empty"):
+            _build_plotter(
+                empty, color="red", opacity=1.0, color_by=None,
+                cmap="viridis", background="white", window_size=(64, 48),
+            )
+
+    def test_invalid_color_by_raises(self, small_aggregate):
+        with pytest.raises(ValueError, match="color_by"):
+            _build_plotter(
+                small_aggregate, color="red", opacity=1.0, color_by="mass",
+                cmap="viridis", background="white", window_size=(64, 48),
+            )
