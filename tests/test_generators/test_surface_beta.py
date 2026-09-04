@@ -45,3 +45,18 @@ def test_surface_beta_rejected_for_fracval():
     with pytest.raises(TypeError):
         pfa.generate(n_particles=20, df=1.8, kf=1.3, method="fracval",
                      surface_beta=0.5)
+
+
+def test_surface_beta_kwarg_reaches_solved_placement():
+    from pyFracAggregate.generators.factory import get_generator
+    from pyFracAggregate.core.distributions import Monodisperse
+    gen = get_generator('pca', 50, 1.8, 1.3, Monodisperse(1.0), surface_beta=0.7)
+    assert gen.placement.surface_beta == 0.7
+
+
+def test_surface_beta_changes_cca_output():
+    np.random.seed(7)
+    a = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="cca", surface_beta=0.9)
+    np.random.seed(7)
+    b = pfa.generate(n_particles=50, df=1.8, kf=1.3, method="cca", surface_beta=0.1)
+    assert not np.allclose(a.positions, b.positions)

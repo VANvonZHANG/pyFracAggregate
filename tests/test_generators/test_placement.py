@@ -1,4 +1,3 @@
-import inspect
 import numpy as np
 import pytest
 from pyFracAggregate.core.aggregate import Aggregate

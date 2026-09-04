@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 import pyFracAggregate as pfa
 
-pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
 
 
 @pytest.mark.benchmark

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pyFracAggregate as pfa
 
-pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+pytestmark = pytest.mark.filterwarnings("ignore:placement=:DeprecationWarning")
 
 
 def test_pca_generation():

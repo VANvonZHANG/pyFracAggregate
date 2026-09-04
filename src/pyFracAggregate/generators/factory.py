@@ -26,6 +26,8 @@ def get_generator(
             "surface_beta only applies to method='pca' or 'cca' "
             "with placement='solved'."
         )
+    if surface_beta is not None:
+        kwargs['surface_beta'] = surface_beta
 
     if method == 'pca':
         gen = PCAGenerator(n_particles, df, kf, particle_dist, overlap_tolerance, **kwargs)
@@ -44,6 +46,4 @@ def get_generator(
     else:
         raise ValueError(f"Unknown generation method: {method}")
 
-    if surface_beta is not None:
-        kwargs['surface_beta'] = surface_beta
     return gen
