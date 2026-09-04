@@ -9,19 +9,35 @@ from pyFracAggregate.generators.pca import PCAGenerator
 class CCAGenerator(BaseGenerator):
     """Cluster-Cluster Aggregation with pluggable scaling and placement."""
 
+    def _seed_placement(self) -> str:
+        # Old fracval seeded subclusters with the default algebraic strategy;
+        # constructed mode mirrors that with its solved equivalent.
+        return ("solved" if self._resolved_placement == "constructed"
+                else self._resolved_placement)
+
     def generate(self) -> Aggregate:
         if self.n_particles <= 8:
             pca_gen = PCAGenerator(
                 self.n_particles, self.df, self.kf, self.particle_dist,
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
                 self.density, scaling=CountScaling(self.df, self.kf),
-                placement=self._placement_name
+                placement=self._seed_placement()
             )
             return pca_gen.generate()
 
         radii = self.particle_dist.sample(self.n_particles)
 
-        cluster_size = 5
+        # FracVAL cluster schedule (Moran 2019) for constructed merges;
+        # fixed small clusters otherwise (deviation N4).
+        if self._resolved_placement == "constructed":
+            if self.n_particles < 50:
+                cluster_size = 5
+            elif self.n_particles <= 500:
+                cluster_size = max(5, int(self.n_particles * 0.1))
+            else:
+                cluster_size = 50
+        else:
+            cluster_size = 5
         cluster_list = []
         idx = 0
         while idx < self.n_particles:
@@ -33,7 +49,7 @@ class CCAGenerator(BaseGenerator):
                 FixedRadii(radii[idx:idx + curr_size]),
                 self.overlap_tolerance, self.length_unit, self.mass_unit,
                 self.density, scaling=CountScaling(self.df, self.kf),
-                placement=self._placement_name
+                placement=self._seed_placement()
             )
             sub_agg = local_pca.generate()
             cluster_list.append(sub_agg)
@@ -58,7 +74,11 @@ class CCAGenerator(BaseGenerator):
         com2 = center_of_mass(agg2)
 
         Gamma = self.scaling.cca_gamma(agg1, agg2)
-        a = (np.mean(agg1.radii) * N1 + np.mean(agg2.radii) * N2) / N
+        if self._resolved_placement == "constructed":
+            # FracVAL fallback tolerance uses the concat mean radius
+            a = float(np.mean(np.concatenate([agg1.radii, agg2.radii])))
+        else:
+            a = (np.mean(agg1.radii) * N1 + np.mean(agg2.radii) * N2) / N
 
         pos1 = agg1.positions - com1
         r1 = agg1.radii

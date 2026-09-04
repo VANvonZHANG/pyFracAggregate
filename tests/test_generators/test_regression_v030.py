@@ -50,3 +50,24 @@ def test_cca_poly_bit_identical():
     np.random.seed(0)
     agg = pfa.generate(n_particles=N, df=DF, kf=KF, method="cca", particle_dist=dist)
     assert np.array_equal(agg.positions, SNAP["cca_poly"])
+
+
+from pyFracAggregate.core.scaling import MassScaling
+from pyFracAggregate.generators.cca import CCAGenerator
+
+
+def _constructed(dist):
+    return CCAGenerator(N, DF, KF, dist, 1e-5,
+                        scaling=MassScaling(DF, KF), placement="constructed").generate()
+
+
+def test_constructed_mono_bit_identical_to_old_fracval():
+    np.random.seed(0)
+    agg = _constructed(pfa.Monodisperse(1.0))
+    assert np.array_equal(agg.positions, SNAP["fracval_mono"])
+
+
+def test_constructed_poly_bit_identical_to_old_fracval():
+    np.random.seed(0)
+    agg = _constructed(pfa.LognormalDistribution(1.0, 1.6))
+    assert np.array_equal(agg.positions, SNAP["fracval_poly"])

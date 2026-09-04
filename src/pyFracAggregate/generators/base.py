@@ -55,7 +55,11 @@ class BaseGenerator(ABC):
             overlap_tolerance=overlap_tolerance,
             surface_beta=surface_beta if surface_beta is not None else 0.3,
         )
-        self._placement_name = placement
+        self._resolved_placement = {
+            "SolvedPlacement": "solved",
+            "SampledPlacement": "sampled",
+            "ConstructedPlacement": "constructed",
+        }[type(self.placement).__name__]
 
     @abstractmethod
     def generate(self) -> Aggregate:
