@@ -143,6 +143,80 @@ def save_screenshot(
         plotter.close()
 
 
+def save_rotation_video(
+    aggregate: Aggregate,
+    path: str,
+    color: str = "lightblue",
+    opacity: float = 0.8,
+    color_by: str | None = None,
+    cmap: str = "viridis",
+    background: str = "white",
+    window_size: tuple[int, int] = (1024, 768),
+    n_frames: int = 72,
+    fps: int = 24,
+    elevation: float = 30.0,
+) -> None:
+    """Generate a 360-degree rotation animation of the aggregate and save as MP4.
+
+    The camera is auto-framed from the mesh bounds (aerosol3d rule) and
+    orbits once around the aggregate at the given elevation.
+
+    Args:
+        aggregate: The fractal aggregate to animate.
+        path: Output file path (must end in .mp4).
+        color: Sphere color name or hex; ignored when color_by="radius".
+        opacity: Sphere opacity (0.0 to 1.0).
+        color_by: None (solid color) or "radius" (colormap over monomer radii).
+        cmap: Colormap name for color_by="radius".
+        background: Background color name or hex.
+        window_size: (width, height) in pixels.
+        n_frames: Total frames for the full 360 degree rotation.
+        fps: Frames per second in the output video.
+        elevation: Camera elevation angle in degrees.
+
+    Raises:
+        ValueError: If path does not end in .mp4, the aggregate is empty,
+            or color_by is invalid.
+        ImportError: If imageio is not installed.
+    """
+    if not path.lower().endswith(".mp4"):
+        raise ValueError(f"Output path must end in .mp4, got: {path}")
+
+    import imageio.v2 as imageio
+
+    plotter = _build_plotter(
+        aggregate, color=color, opacity=opacity, color_by=color_by,
+        cmap=cmap, background=background, window_size=window_size,
+    )
+    writer = imageio.get_writer(
+        path, fps=fps,
+        format="FFMPEG",  # type: ignore[arg-type]  # imageio stub quirk
+    )
+    try:
+        bounds = plotter.bounds
+        center = np.array([
+            (bounds[0] + bounds[1]) / 2.0,
+            (bounds[2] + bounds[3]) / 2.0,
+            (bounds[4] + bounds[5]) / 2.0,
+        ])
+        distance = _framing_distance(bounds)
+
+        for i in range(n_frames):
+            azimuth = 360.0 * i / n_frames
+            # camera_position tuple + render() required in off_screen mode;
+            # individual camera attribute assignments are ignored by pyvista
+            plotter.camera_position = cast(
+                Any, _orbit_camera_position(center, distance, azimuth, elevation)
+            )
+            plotter.render()
+            frame = plotter.screenshot(return_img=True)
+            if frame is not None:
+                writer.append_data(frame)
+    finally:
+        writer.close()
+        plotter.close()
+
+
 def export_render(
     aggregate: Aggregate,
     path: str,

@@ -9,6 +9,7 @@ from pyFracAggregate.io.visualization import (
     _build_plotter,
     _framing_distance,
     _orbit_camera_position,
+    save_rotation_video,
     save_screenshot,
 )
 
@@ -130,3 +131,41 @@ class TestSaveScreenshot:
         path = str(tmp_path / "render.png")
         with pytest.raises(ValueError, match="color_by"):
             save_screenshot(small_aggregate, path, color_by="mass")
+
+
+class TestSaveRotationVideo:
+    def test_creates_mp4(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "rotation.mp4")
+        save_rotation_video(small_aggregate, path, n_frames=4, fps=4,
+                            window_size=(320, 240))
+        assert os.path.exists(path)
+        assert os.path.getsize(path) > 0
+
+    def test_rejects_non_mp4(self, small_aggregate, tmp_path):
+        path = str(tmp_path / "rotation.gif")
+        with pytest.raises(ValueError, match="mp4"):
+            save_rotation_video(small_aggregate, path)
+
+    def test_camera_actually_rotates(self, small_aggregate, tmp_path):
+        """Regression: v0.4 export_rotation_video produced a static camera.
+
+        Frames at 180 deg and 300 deg must differ from frame 0 by far more
+        than encoding noise (measured noise floor of the bug: MAD ~ 0.01).
+        """
+        path = str(tmp_path / "rotation.mp4")
+        save_rotation_video(small_aggregate, path, n_frames=6, fps=6,
+                            window_size=(320, 240))
+        import imageio.v2 as imageio
+
+        with imageio.get_reader(path) as reader:
+            f0 = np.asarray(reader.get_data(0), dtype=np.int16)
+            f3 = np.asarray(reader.get_data(3), dtype=np.int16)
+            f5 = np.asarray(reader.get_data(5), dtype=np.int16)
+        assert np.abs(f0 - f3).mean() > 1.0
+        assert np.abs(f0 - f5).mean() > 1.0
+
+    def test_missing_imageio_raises(self, small_aggregate, tmp_path, monkeypatch):
+        monkeypatch.setitem(sys.modules, "imageio", None)
+        path = str(tmp_path / "rotation.mp4")
+        with pytest.raises(ImportError, match="imageio"):
+            save_rotation_video(small_aggregate, path)
