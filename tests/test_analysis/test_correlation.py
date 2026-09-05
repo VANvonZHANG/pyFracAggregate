@@ -57,7 +57,7 @@ def test_mass_pcf_two_particles_analytic():
     bin_idx = int(np.argmin(np.abs(r_centers - 10.0)))
     h = 12.0 / 20.0
     total_w = 1.0 ** 3 + 2.0 ** 3
-    expected = (1.0 ** 3 * 2.0 ** 3) / (4.0 * np.pi * r_centers[bin_idx] ** 2 * h * total_w)
+    expected = 2.0 * (1.0 ** 3 * 2.0 ** 3) / (4.0 * np.pi * r_centers[bin_idx] ** 2 * h * total_w)
     assert np.isclose(c_m[bin_idx], expected)
     for i in range(20):
         if i != bin_idx:
@@ -79,3 +79,19 @@ def test_mass_pcf_too_few_particles():
     agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
     r, c_m = mass_pair_correlation_function(agg)
     assert len(r) == 0 and len(c_m) == 0
+
+
+def test_plot_pair_correlation_measures(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    for measure in ("num", "mass", "both"):
+        out = tmp_path / f"pcf_{measure}.png"
+        pfa.plot_pair_correlation(agg, measure=measure, save_path=str(out))
+        assert out.exists() and out.stat().st_size > 0
+
+
+def test_plot_pair_correlation_rejects_unknown_measure():
+    agg = pfa.generate(20, 1.8, 1.9, method="pca", seed=1)
+    with pytest.raises(ValueError, match="measure"):
+        pfa.plot_pair_correlation(agg, measure="nmu")

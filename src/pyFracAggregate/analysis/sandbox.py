@@ -176,6 +176,11 @@ def plot_sandbox(
         measure (str): 'num', 'mass', or 'both'.
         save_path (str, optional): Path to save the figure.
     """
+    if measure not in ("num", "mass", "both"):
+        raise ValueError(
+            f"measure must be 'num', 'mass', or 'both', got {measure!r}"
+        )
+
     try:
         import matplotlib.pyplot as plt
     except ImportError:

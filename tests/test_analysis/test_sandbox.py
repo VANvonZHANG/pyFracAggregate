@@ -119,3 +119,8 @@ def test_plot_sandbox_too_few_particles(tmp_path, capsys):
     agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
     plot_sandbox(agg, save_path=str(tmp_path / "x.png"))
     assert "too few particles" in capsys.readouterr().out
+
+
+def test_plot_sandbox_rejects_unknown_measure(agg_mono):
+    with pytest.raises(ValueError, match="measure"):
+        plot_sandbox(agg_mono, measure="nmu")
