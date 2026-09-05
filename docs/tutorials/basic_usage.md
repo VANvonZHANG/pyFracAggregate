@@ -90,7 +90,7 @@ a request of 1.8, and {math}`R^2 = 0.98` says the log-log fit is good —
 realization at moderate {math}`N` typically deviates from the requested
 {math}`D_f` by a few tenths; average over several seeded realizations before
 quoting ensemble numbers
-([Interpreting `df_est` and `r2`](/user-guide/analysis.md#interpreting-df_est-and-r2)).
+([Interpreting `df_num_est`, `df_mass_est` and the r2 fields](/user-guide/analysis.md#interpreting-df_num_est-df_mass_est-and-the-r2-fields)).
 
 ### Pair correlation function
 

@@ -10,17 +10,17 @@ import pyFracAggregate as pfa
 agg = pfa.generate(256, df=1.8, kf=1.9, method="pca", seed=0)
 
 report = pfa.analyze(agg)   # MorphologyReport
-print(report.rg, report.df_est, report.r2)
+print(f"Rg:       {report.rg:.3f} {agg.length_unit}")
+print(f"Df,num:   {report.df_num_est:.3f}  (R2={report.r2_num:.4f})")
+print(f"Df,mass:  {report.df_mass_est:.3f}  (R2={report.r2_mass:.4f})")
 ```
 
-which for this seed gives (values rounded):
+which for this seed prints:
 
 ```text
-rg      = 15.230
-com     = [-3.788, 5.321, -0.262]
-n       = 256
-df_est  = 1.493
-r2      = 0.981
+Rg:       15.230 nm
+Df,num:   1.889  (R2=0.9788)
+Df,mass:  1.889  (R2=0.9788)
 ```
 
 `analyze()` returns a typed `MorphologyReport` (a dataclass; pass it through

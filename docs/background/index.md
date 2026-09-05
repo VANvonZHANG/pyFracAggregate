@@ -71,14 +71,13 @@ dimension of one aggregate is a random variable, so average over realizations
 for ensemble statements.
 
 **How this library measures quality.**
-[analyze()](/api-reference/index.md#analysis) returns `Df_estimated` and `R2`
-from the pair correlation function {math}`C(r)`, which for a mass fractal
-obeys {math}`C(r) \propto r^{D_f - 3}`: the slope of the log-log regression
-over the fractal regime between the mean primary radius and {math}`R_g`
-equals {math}`D_f - 3`, so `Df_estimated` is the fitted slope plus 3, `R2`
-the goodness of fit. The intended workflow is: generate,
-analyze, compare `Df_estimated` with the requested `df`, then iterate or
-average.
+[analyze()](/api-reference/index.md#analysis) reports both measures (see
+the next section): `df_num_est` and `df_mass_est`, computed by the sandbox
+estimator by default (`estimator="pcf"` selects the classic
+pair-correlation path). The intended workflow is: generate, `analyze()`,
+compare `df_num_est` with the requested `df` — and `df_mass_est` too when
+primaries are polydisperse — averaging over several seeded realizations
+before quoting ensemble numbers.
 
 ## Counting versus mass measure
 
