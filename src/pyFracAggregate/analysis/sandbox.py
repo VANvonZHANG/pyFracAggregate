@@ -19,7 +19,7 @@ overridden.
 import numpy as np
 from scipy.spatial import cKDTree
 
-from pyFracAggregate.analysis.correlation import estimate_fractal_dimension  # noqa: F401
+from pyFracAggregate.analysis.correlation import estimate_fractal_dimension
 from pyFracAggregate.analysis.morphology import radius_of_gyration
 from pyFracAggregate.core.aggregate import Aggregate
 
@@ -99,3 +99,57 @@ def mass_radius_function(
         tuple[np.ndarray, np.ndarray]: (r_centers, M_r).
     """
     return _radius_curve(aggregate, aggregate.radii ** 3, bins, r_min, r_max)
+
+
+def _sandbox_dimension(
+    aggregate: Aggregate,
+    weights: np.ndarray,
+    bins: int = 15,
+    r_min: "float | None" = None,
+    r_max: "float | None" = None,
+) -> tuple[float, float, dict]:
+    """One-shot core: curve + power-law fit over the (effective) window."""
+    r_centers, curve = _radius_curve(aggregate, weights, bins, r_min, r_max)
+    if len(r_centers) < 2:
+        return 0.0, 0.0, {}
+    # estimate_fractal_dimension returns slope + 3 (the pair-correlation
+    # convention C(r) ~ r**(Df-3)); the sandbox cumulative curve obeys
+    # <W(r)> ~ r**Df directly, so Df is the raw slope: undo the +3.
+    df, r2, fit = estimate_fractal_dimension(
+        r_centers, curve, r_min=r_centers[0], r_max=r_centers[-1]
+    )
+    return df - 3.0, r2, fit
+
+
+def number_sandbox_dimension(
+    aggregate: Aggregate,
+    bins: int = 15,
+    r_min: "float | None" = None,
+    r_max: "float | None" = None,
+) -> tuple[float, float, dict]:
+    """Estimate the number-based fractal dimension Df,n from ``<N(r)>``.
+
+    Fits ``<N(r)> ~ r**Df`` on a log-log grid (default window: mean primary
+    radius to Rg); returns (Df, R_squared, fit_results) like
+    ``estimate_fractal_dimension``.
+    """
+    return _sandbox_dimension(
+        aggregate, np.ones(aggregate.current_size), bins, r_min, r_max
+    )
+
+
+def mass_sandbox_dimension(
+    aggregate: Aggregate,
+    bins: int = 15,
+    r_min: "float | None" = None,
+    r_max: "float | None" = None,
+) -> tuple[float, float, dict]:
+    """Estimate the mass-based fractal dimension Df,m from ``<M(r)>``.
+
+    Fits ``<M(r)> ~ r**(Df, m)``; weights are ``r_i**3`` (volume ≡ mass at
+    constant density). For monodisperse primaries the result is identical
+    to ``number_sandbox_dimension`` (constant weights cancel in the slope).
+    """
+    return _sandbox_dimension(
+        aggregate, aggregate.radii ** 3, bins, r_min, r_max
+    )
