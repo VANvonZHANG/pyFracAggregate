@@ -89,3 +89,33 @@ def test_dimension_too_few_particles():
     for func in (number_sandbox_dimension, mass_sandbox_dimension):
         df, r2, fit = func(agg)
         assert df == 0.0 and r2 == 0.0 and fit == {}
+
+
+from pyFracAggregate.analysis.sandbox import plot_sandbox
+
+
+def test_plot_sandbox_saves_figure(agg_poly, tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    out = tmp_path / "sandbox.png"
+    plot_sandbox(
+        agg_poly, show_fit=True, reference_df=1.8,
+        measure="both", save_path=str(out),
+    )
+    assert out.exists() and out.stat().st_size > 0
+
+
+def test_plot_sandbox_single_measure(agg_mono, tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    for measure in ("num", "mass"):
+        out = tmp_path / f"sandbox_{measure}.png"
+        plot_sandbox(agg_mono, measure=measure, save_path=str(out))
+        assert out.exists()
+
+
+def test_plot_sandbox_too_few_particles(tmp_path, capsys):
+    agg = Aggregate(1)
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
+    plot_sandbox(agg, save_path=str(tmp_path / "x.png"))
+    assert "too few particles" in capsys.readouterr().out

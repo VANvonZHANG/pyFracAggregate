@@ -153,3 +153,80 @@ def mass_sandbox_dimension(
     return _sandbox_dimension(
         aggregate, aggregate.radii ** 3, bins, r_min, r_max
     )
+
+
+def plot_sandbox(
+    aggregate: Aggregate,
+    bins: int = 15,
+    show_fit: bool = True,
+    reference_df: "float | None" = None,
+    measure: str = "both",
+    save_path: "str | None" = None,
+) -> None:
+    """Plot ``<N(r)>`` and/or ``<M(r)>`` on log-log axes with fractal fits.
+
+    The default ``measure="both"`` overlays the number and mass curves with
+    their respective fits — the measure-comparison figure.
+
+    Args:
+        aggregate (Aggregate): Cluster object.
+        bins (int): Number of log-spaced grid points.
+        show_fit (bool): Whether to draw the power-law fits.
+        reference_df (float, optional): Reference Df slope to show.
+        measure (str): 'num', 'mass', or 'both'.
+        save_path (str, optional): Path to save the figure.
+    """
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("Error: matplotlib is required for plotting. Install it with 'pip install matplotlib'.")
+        return
+
+    curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    if measure in ("num", "both"):
+        curves["num"] = number_radius_function(aggregate, bins=bins)
+    if measure in ("mass", "both"):
+        curves["mass"] = mass_radius_function(aggregate, bins=bins)
+    if not curves or all(len(v[0]) == 0 for v in curves.values()):
+        print("Warning: Aggregate has too few particles for sandbox analysis.")
+        return
+
+    plt.figure(figsize=(8, 6))
+    colors = {"num": "tab:blue", "mass": "tab:orange"}
+    names = {"num": r"$\langle N(r) \rangle$", "mass": r"$\langle M(r) \rangle$"}
+    for key, (r, curve) in curves.items():
+        plt.loglog(r, curve, "o", markersize=4, alpha=0.7, color=colors[key],
+                   label=f"{names[key]} ({key})")
+        if show_fit:
+            df_pcf, r2, fit = estimate_fractal_dimension(
+                r, curve, r_min=r[0], r_max=r[-1]
+            )
+            if fit:
+                df = df_pcf - 3.0  # cumulative curve: Df is the raw slope
+                plt.loglog(fit["x_fit"], fit["y_fit"], "-", linewidth=2,
+                           color=colors[key],
+                           label=f"Fit ({key}): $D_f$={df:.2f}, $R^2$={r2:.3f}")
+
+    if reference_df is not None:
+        r_ref, c_ref = next(iter(curves.values()))
+        mid = len(r_ref) // 2
+        intercept = np.log10(c_ref[mid]) - (reference_df - 3.0) * np.log10(r_ref[mid])
+        plt.loglog(r_ref, 10 ** ((reference_df - 3.0) * np.log10(r_ref) + intercept),
+                   "g--", alpha=0.5, label=f"Ref: $D_f$={reference_df}")
+
+    plt.axvline(float(np.mean(aggregate.radii)), color="gray", linestyle="--",
+                alpha=0.5, label="Min Fit Bound")
+    plt.axvline(radius_of_gyration(aggregate), color="gray", linestyle=":",
+                alpha=0.5, label="Max Fit Bound ($R_g$)")
+
+    plt.xlabel(f"Distance $r$ [{aggregate.length_unit}]")
+    plt.ylabel(r"$\langle N(r) \rangle$ / $\langle M(r) \rangle$")
+    plt.title("Sandbox (Mass-Radius) Analysis")
+    plt.grid(True, which="both", ls="-", alpha=0.2)
+    plt.legend()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        print(f"Plot saved to {save_path}")
+    else:
+        plt.show()
