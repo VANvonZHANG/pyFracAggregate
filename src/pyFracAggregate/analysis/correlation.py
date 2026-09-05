@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import pdist
 from pyFracAggregate.core.aggregate import Aggregate
 
 def pair_correlation_function(
@@ -75,6 +76,63 @@ def pair_correlation_function(
     c_r = np.nan_to_num(c_r, posinf=0.0)
     
     return r_centers, c_r
+
+def mass_pair_correlation_function(
+    aggregate: Aggregate,
+    bins: int = 50,
+    r_max: "float | None" = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calculates the mass-weighted pair correlation function C_m(r).
+
+    Each pair (i, j) contributes weight m_i * m_j with m_i = r_i**3
+    (volume; with constant material density mass- and volume-weighting are
+    identical up to a constant factor, so the slope is unaffected):
+
+    C_m(r) = (sum of m_i*m_j over pairs with distance in [r, r+h])
+             / (4 * pi * r^2 * h * M)
+    where M = sum_i m_i and h is the linear bin width.
+
+    Statistical caveat: a single-realization C_m(r) is noisy — it is
+    dominated by the few largest primaries (participation ratio
+    sum(m)^2/sum(m^2) is small for lognormal radii). Prefer
+    ``mass_sandbox_dimension`` for a single aggregate's Df,m; use this
+    function for ensemble-averaged curves.
+
+    Args:
+        aggregate (Aggregate): Cluster object.
+        bins (int): Number of linear bins for r.
+        r_max (float, optional): Maximum distance; defaults to twice the
+            largest centre distance from the centroid.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: (r_centers, C_m).
+    """
+    if aggregate.current_size < 2:
+        return np.array([]), np.array([])
+
+    positions = aggregate.positions
+    n = aggregate.current_size
+    w = aggregate.radii ** 3
+
+    if r_max is None:
+        com = np.mean(positions, axis=0)
+        r_max = 2.0 * np.max(np.linalg.norm(positions - com, axis=1))
+        if r_max == 0:
+            return np.array([]), np.array([])
+
+    r_edges = np.linspace(0, r_max, bins + 1)
+    ii, jj = np.triu_indices(n, k=1)
+    d = pdist(positions)
+    hist, _ = np.histogram(d, bins=r_edges, weights=w[ii] * w[jj])
+
+    r_centers = (r_edges[:-1] + r_edges[1:]) / 2.0
+    h = r_edges[1] - r_edges[0]
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        c_m = hist / (4.0 * np.pi * (r_centers ** 2) * h * w.sum())
+    c_m = np.nan_to_num(c_m, posinf=0.0)
+
+    return r_centers, c_m
 
 def estimate_fractal_dimension(
     r_centers: np.ndarray,

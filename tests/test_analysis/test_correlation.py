@@ -43,3 +43,39 @@ def test_pair_correlation_function_empty_or_single():
     r_centers, c_r = pair_correlation_function(agg1)
     assert len(r_centers) == 0
     assert len(c_r) == 0
+
+import pyFracAggregate as pfa
+from pyFracAggregate.analysis.correlation import mass_pair_correlation_function
+
+
+def test_mass_pcf_two_particles_analytic():
+    agg = Aggregate(3)
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
+    agg.add_particle(10.0, 0.0, 0.0, 2.0, 1.0)
+
+    r_centers, c_m = mass_pair_correlation_function(agg, bins=20, r_max=12.0)
+    bin_idx = int(np.argmin(np.abs(r_centers - 10.0)))
+    h = 12.0 / 20.0
+    total_w = 1.0 ** 3 + 2.0 ** 3
+    expected = (1.0 ** 3 * 2.0 ** 3) / (4.0 * np.pi * r_centers[bin_idx] ** 2 * h * total_w)
+    assert np.isclose(c_m[bin_idx], expected)
+    for i in range(20):
+        if i != bin_idx:
+            assert c_m[i] == 0.0
+
+
+def test_mass_pcf_monodisperse_is_scaled_counting_pcf():
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    r, c = pair_correlation_function(agg)
+    r_m, c_m = mass_pair_correlation_function(agg)
+    assert np.allclose(r, r_m)
+    mask = c > 0
+    ratio = c_m[mask] / c[mask]
+    assert np.allclose(ratio, ratio[0])       # constant factor -> same slope
+
+
+def test_mass_pcf_too_few_particles():
+    agg = Aggregate(1)
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
+    r, c_m = mass_pair_correlation_function(agg)
+    assert len(r) == 0 and len(c_m) == 0
