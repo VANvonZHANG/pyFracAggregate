@@ -95,3 +95,19 @@ def test_plot_pair_correlation_rejects_unknown_measure():
     agg = pfa.generate(20, 1.8, 1.9, method="pca", seed=1)
     with pytest.raises(ValueError, match="measure"):
         pfa.plot_pair_correlation(agg, measure="nmu")
+
+
+def test_plot_pair_correlation_reference_slope_is_df_minus_3(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    import matplotlib.pyplot as plt
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    pfa.plot_pair_correlation(agg, show_fit=True, reference_df=1.8,
+                              measure="num", save_path=str(tmp_path / "p.png"))
+    ax = plt.gca()
+    ref = [ln for ln in ax.lines if ln.get_label().startswith("Ref")]
+    assert len(ref) == 1
+    x, y = ref[0].get_xdata(), ref[0].get_ydata()
+    slope = np.polyfit(np.log10(x), np.log10(y), 1)[0]
+    assert slope == pytest.approx(1.8 - 3.0, abs=1e-6)   # differenced: Df - 3
+    plt.close("all")

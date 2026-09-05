@@ -215,8 +215,10 @@ def plot_sandbox(
     if reference_df is not None:
         r_ref, c_ref = next(iter(curves.values()))
         mid = len(r_ref) // 2
-        intercept = np.log10(c_ref[mid]) - (reference_df - 3.0) * np.log10(r_ref[mid])
-        plt.loglog(r_ref, 10 ** ((reference_df - 3.0) * np.log10(r_ref) + intercept),
+        # cumulative curve: the reference slope is Df itself (no -3; that is
+        # the differenced-PCF convention used in plot_pair_correlation)
+        intercept = np.log10(c_ref[mid]) - reference_df * np.log10(r_ref[mid])
+        plt.loglog(r_ref, 10 ** (reference_df * np.log10(r_ref) + intercept),
                    "g--", alpha=0.5, label=f"Ref: $D_f$={reference_df}")
 
     plt.axvline(float(np.mean(aggregate.radii)), color="gray", linestyle="--",

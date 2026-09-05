@@ -45,7 +45,8 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 
 ### Analysis (`src/pyFracAggregate/analysis/`)
 - `morphology`: `radius_of_gyration()`, `center_of_mass()`
-- `correlation`: `pair_correlation_function()`, `estimate_fractal_dimension()`, `plot_pair_correlation()`
+- `correlation`: `pair_correlation_function()` and its mass-weighted mirror `mass_pair_correlation_function()` (ordered-pair normalization parity), `estimate_fractal_dimension()` (log-log fit; returns slope+3 per the PCF convention), `plot_pair_correlation()` (measure="num"|"mass"|"both")
+- `sandbox`: `number_radius_function()` / `mass_radius_function()` (cumulative `<N(r)>`/`<M(r)>` on a log grid), one-shot `number_sandbox_dimension()` / `mass_sandbox_dimension()` (Df is the raw slope; the PCF +3 is explicitly undone), `plot_sandbox()` (measure="both" comparison figure)
 
 ### IO (`src/pyFracAggregate/io/`)
 - **data.py**: `export_yaml()` — full aggregate snapshot (data, generation params, analysis results)
@@ -53,7 +54,7 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 - **vtk.py**: `export_vtm()` (MultiBlock) and `export_vtk()` (point cloud) via pyvista
 
 ### Top-level API (`__init__.py`)
-`pfa.generate(n_particles, df, kf, method='pca', scaling='mass', placement='solved', particle_dist=None, overlap_tolerance=1e-5, seed=None)` and `pfa.analyze(aggregate)` (returns the `MorphologyReport` dataclass) are the primary entry points. `generate()` delegates to the factory after matrix validation. Generation is reproducible via `seed=` (private `np.random.Generator`; the global NumPy RNG is never consulted). IO exports include `export_yaml()` (full snapshot; accepts a `MorphologyReport` and serializes legacy key names), `export_vtk()` (point cloud), `export_vtm()` (MultiBlock), and `save_screenshot()`/`save_rotation_video()` (off-screen PNG render / MP4 rotation video; `color_by="radius"` colors by monomer size).
+`pfa.generate(n_particles, df, kf, method='pca', scaling='mass', placement='solved', particle_dist=None, overlap_tolerance=1e-5, seed=None)` and `pfa.analyze(aggregate, estimator='sandbox'|'pcf')` (sandbox default; returns the 12-field `MorphologyReport` — per-measure df/r2/curves plus `estimator` provenance) are the primary entry points. `generate()` delegates to the factory after matrix validation. Generation is reproducible via `seed=` (private `np.random.Generator`; the global NumPy RNG is never consulted). IO exports include `export_yaml()` (full snapshot; accepts a `MorphologyReport` and serializes the v0.6 key names Rg/CoM/N/estimator/Df_num_estimated/... — old keys removed, no aliases), `export_vtk()` (point cloud), `export_vtm()` (MultiBlock), and `save_screenshot()`/`save_rotation_video()` (off-screen PNG render / MP4 rotation video; `color_by="radius"` colors by monomer size).
 
 ## Key Conventions
 - Python 3.13+, type hints throughout; `ruff check src/` and `mypy src/` clean

@@ -219,6 +219,11 @@ def plot_pair_correlation(
             mass_pair_correlation_function.
         save_path (str, optional): Path to save the figure.
     """
+    if measure not in ("num", "mass", "both"):
+        raise ValueError(
+            f"measure must be 'num', 'mass', or 'both', got {measure!r}"
+        )
+
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -226,11 +231,6 @@ def plot_pair_correlation(
         return
 
     from pyFracAggregate.analysis.morphology import radius_of_gyration
-
-    if measure not in ("num", "mass", "both"):
-        raise ValueError(
-            f"measure must be 'num', 'mass', or 'both', got {measure!r}"
-        )
 
     curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     if measure in ("num", "both"):

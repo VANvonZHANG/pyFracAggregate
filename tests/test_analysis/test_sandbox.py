@@ -124,3 +124,18 @@ def test_plot_sandbox_too_few_particles(tmp_path, capsys):
 def test_plot_sandbox_rejects_unknown_measure(agg_mono):
     with pytest.raises(ValueError, match="measure"):
         plot_sandbox(agg_mono, measure="nmu")
+
+
+def test_plot_sandbox_reference_slope_is_df_itself(agg_poly, tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    import matplotlib.pyplot as plt
+    plot_sandbox(agg_poly, show_fit=True, reference_df=1.8, measure="both",
+                 save_path=str(tmp_path / "s.png"))
+    ax = plt.gca()
+    ref = [ln for ln in ax.lines if ln.get_label().startswith("Ref")]
+    assert len(ref) == 1
+    x, y = ref[0].get_xdata(), ref[0].get_ydata()
+    slope = np.polyfit(np.log10(x), np.log10(y), 1)[0]
+    assert slope == pytest.approx(1.8, abs=1e-6)   # cumulative: no -3
+    plt.close("all")

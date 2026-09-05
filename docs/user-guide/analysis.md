@@ -103,7 +103,7 @@ the measure-comparison figure.
 r, c_m = pfa.mass_pair_correlation_function(agg, bins=50)
 ```
 
-Pairs are weighted by {math}`m_i m_j` (volume cubed; constant density makes
+Pairs are weighted by {math}`m_i m_j` (particle volumes; constant density makes
 mass- and volume-weighting identical). Noisy on single realizations —
 intended for ensemble-averaged curves.
 
