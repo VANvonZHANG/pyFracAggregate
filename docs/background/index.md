@@ -367,9 +367,10 @@ By downstream use:
   the geometry is a genuine hard-sphere packing.
 
 Whatever the choice, close the loop with
-[analyze()](/api-reference/index.md#analysis): compare `Df_estimated` with
-the requested `df`, check `R2`, and average over realizations before quoting
-ensemble numbers.
+[analyze()](/api-reference/index.md#analysis): compare `df_num_est` (and
+`df_mass_est` for polydisperse primaries) with the requested `df`, check
+the r2 fields, and average over realizations before quoting ensemble
+numbers.
 
 ## References
 
