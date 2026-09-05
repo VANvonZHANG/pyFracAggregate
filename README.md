@@ -58,17 +58,17 @@ import pyFracAggregate as pfa
 
 agg = pfa.generate(200, 1.8, 1.9, method='pca', seed=0)  # N=200, Df=1.8, kf=1.9
 
-summary = pfa.analyze(agg)   # MorphologyReport
-print(agg.current_size, summary.df_est)   # 200 1.6126416651056448
+summary = pfa.analyze(agg)              # MorphologyReport (sandbox default)
+print(agg.current_size, summary.df_num_est, summary.df_mass_est)
 
 pfa.export_yaml(agg, 'aggregate.yaml')
 pfa.export_vtk(agg, 'aggregate.vtk')
 ```
 
 Generation is stochastic; pass `seed=` for reproducible aggregates
-(generation never consults the global `numpy.random` state). The single-realization
-`df_est` scatters around the requested `df`; average over realizations for
-ensemble statements.
+(generation never consults the global `numpy.random` state). The
+single-realization `df_num_est` (and `df_mass_est`) scatter around the
+requested `df`; average over realizations for ensemble statements.
 
 ## The coordinate system
 

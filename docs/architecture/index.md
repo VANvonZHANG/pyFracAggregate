@@ -141,8 +141,9 @@ rejected for placements that do not support them.
 
 `pfa.analyze()` is the facade's read-side: it bundles
 `radius_of_gyration`, `center_of_mass`, and the pair-correlation fit into a
-typed `MorphologyReport` (`rg`, `df_est`, `r2`, `r_centers`,
-`pair_correlation`, `com`, `n`).
+typed `MorphologyReport` (`rg`, `com`, `n`, `estimator`, per-measure
+`df_num_est`/`r2_num`/`r_num`/`num_correlation` and
+`df_mass_est`/`r2_mass`/`r_mass`/`mass_correlation`).
 
 ## The placement strategy layer
 
@@ -183,10 +184,14 @@ outside the placement layer.
 The analysis layer is a set of pure functions over an `Aggregate`:
 `morphology.py` provides `radius_of_gyration` (mass-weighted, including each
 sphere's intrinsic gyration, per Morán et al. 2019 Eq. (3)) and
-`center_of_mass`; `correlation.py` provides `pair_correlation_function`,
-`estimate_fractal_dimension` (log-log regression of `C(r)` over the fractal
-regime), and the matplotlib-based `plot_pair_correlation` for diagnosing the
-fit. No function mutates the aggregate.
+`center_of_mass`; `correlation.py` provides `pair_correlation_function`
+and its mass-weighted mirror `mass_pair_correlation_function`
+(both differenced curves; `estimate_fractal_dimension` is the shared
+power-law fitter), `plot_pair_correlation` for diagnosis;
+`sandbox.py` provides the cumulative mass-radius family
+(`number_radius_function`/`mass_radius_function`, one-shot
+`number_sandbox_dimension`/`mass_sandbox_dimension`, `plot_sandbox`).
+No function mutates the aggregate.
 
 ## I/O
 

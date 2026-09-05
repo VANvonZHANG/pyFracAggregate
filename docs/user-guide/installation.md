@@ -28,7 +28,7 @@ Optional extras:
 
 | Extra | Installs | Needed for |
 |---|---|---|
-| `[plot]` | matplotlib | [plotting helpers](/api-reference/index.md#analysis) such as `plot_pair_correlation` |
+| `[plot]` | matplotlib | [plotting helpers](/api-reference/index.md#analysis) such as `plot_pair_correlation` and `plot_sandbox` |
 | `[dev]` | pytest, ruff, mypy | running the test suite and linters |
 | `[docs]` | Sphinx, MyST, RTD theme | building this documentation |
 
