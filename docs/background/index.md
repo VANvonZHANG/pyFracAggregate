@@ -80,6 +80,50 @@ the goodness of fit. The intended workflow is: generate,
 analyze, compare `Df_estimated` with the requested `df`, then iterate or
 average.
 
+## Counting versus mass measure
+
+The scaling law counts primaries; every primary contributes "1". That is
+the **number (counting) measure**, and it is what `df` in
+{math}`N = k_f (R_g/a)^{D_f}` refers to. Real primaries have different
+sizes, and a second, equally valid question exists: how does the
+**mass** of primaries within distance {math}`r` of a primary grow? Two
+definitions that differ by one word:
+
+- **number Df** — the *number* of primary centres within radius r of a
+  primary scales as {math}`N(r) \propto r^{D_f}`;
+- **mass Df** — the *summed mass* of primaries within radius r of a
+  primary scales as {math}`M(r) \propto r^{D_{f,m}}`.
+
+Because the material density is constant, mass weights {math}`m_i`
+differ from volume weights {math}`r_i^3` only by a constant factor:
+mass-based and volume-based weighting are identical, and the fitted
+exponent is unaffected.
+
+### Which estimator, and why
+
+| Estimator | Result on the tutorial Part-2 aggregate (N=256, {math}`\sigma_g=1.6`, seed 0) | Verdict |
+|---|---|---|
+| number sandbox {math}`\langle N(r)\rangle` | {math}`D_f = 1.782` ({math}`R^2 = 0.994`) | robust |
+| mass sandbox {math}`\langle M(r)\rangle` | {math}`D_{f,m} = 1.879` ({math}`R^2 = 0.976`) | robust — library default |
+| differenced mass PCF {math}`C_m(r)` | {math}`R^2 \approx 0.125` | noisy on single realizations |
+| mass-weighted seeds (strict) | outside (1, 3) on 5/5 seeds | do not use |
+
+The failure modes are statistical, not conceptual: mass weighting is
+dominated by the few largest primaries (participation ratio
+{math}`(\sum m)^2 / \sum m^2 \approx 43` of 256 primaries here), and
+differencing amplifies that noise. `C_m(r)` remains useful for
+ensemble-averaged curves.
+
+### Interpreting {math}`D_{f,m} - D_f`
+
+Both measures live on the same support (the set of primary centres), so
+the two exponents coincide when radii are uncorrelated with position
+(measured Spearman rank correlation {math}`\approx -0.05` on the tutorial
+aggregate). A systematic difference indicates size-position
+correlation — e.g. large primaries anchoring a dense core — and is the
+physical situation where reporting both numbers matters (compacted or
+coated soot).
+
 ## Primary particles
 
 Primary sizes enter through a distribution object:

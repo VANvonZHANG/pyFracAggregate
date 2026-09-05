@@ -26,37 +26,46 @@ r2      = 0.981
 `analyze()` returns a typed `MorphologyReport` (a dataclass; pass it through
 `dataclasses.asdict` when you need a plain dict):
 
-| Attribute | Meaning |
+| Field | Meaning |
 |---|---|
-| `rg` | Radius of gyration (float, in `length_unit`). |
+| `rg` | Radius of gyration (float, in `length_unit`; mass-weighted). |
 | `com` | Center of mass, shape `(3,)` array. |
 | `n` | Number of particles (`aggregate.current_size`). |
-| `df_est` | Fractal dimension estimated from the pair correlation function. |
-| `r2` | Coefficient of determination of the underlying log-log fit. |
-| `r_centers` | Bin centers of the pair correlation `r` grid. |
-| `pair_correlation` | The `C(r)` values on that grid. |
+| `estimator` | Which family produced the report: `"sandbox"` or `"pcf"`. |
+| `df_num_est` | Number-based fractal dimension (counting measure). |
+| `r2_num` | Fit quality of the number-measure fit. |
+| `r_num`, `num_correlation` | Number-measure curve (sandbox: cumulative ⟨N(r)⟩; pcf: C(r)). |
+| `df_mass_est` | Mass-based fractal dimension (≡ volume-based; constant density). |
+| `r2_mass` | Fit quality of the mass-measure fit. |
+| `r_mass`, `mass_correlation` | Mass-measure curve (sandbox: cumulative ⟨M(r)⟩; pcf: C_m(r)). |
 
 `export_yaml(agg, path, analysis_results=report)` serializes the report
-under the legacy snapshot key names (`Rg`, `CoM`, `N`, `Df_estimated`,
-`R2`, plus `r_centers`/`pair_correlation`), keeping YAML snapshots
-field-compatible with earlier versions. (Until v0.3 the report was a plain
-dict with those capitalized keys.)
+under the v0.6 snapshot key names (`Rg`, `CoM`, `N`, `estimator`,
+`Df_num_estimated`, `R2_num`, `r_num`, `num_correlation`,
+`Df_mass_estimated`, `R2_mass`, `r_mass`, `mass_correlation`). The
+`estimator` key records which family produced the numbers, so snapshots
+stay traceable. Consumers must read the `estimator` field before
+interpreting `r_num`/`num_correlation` (sandbox mode holds cumulative
+curves; pcf mode holds differenced curves).
 
-## Interpreting `df_est` and `r2`
+## Interpreting `df_num_est`, `df_mass_est` and the r2 fields
 
-The estimate comes from a log-log linear fit of the pair correlation function
-{math}`C(r)`. Because {math}`C(r) \propto r^{D_f - 3}` in the fractal regime,
-the fitted slope equals {math}`D_f - 3` and the reported
-`df_est` is `slope + 3` — see
-[the background chapter](/background/index.md#morphology-parameters) for the
-theory. The fit window used by `analyze()` runs from the mean primary radius
-to {math}`R_g`.
+`analyze()` reports both measures (see
+[the background chapter](/background/index.md#counting-versus-mass-measure)
+for what the two measures mean). For monodisperse primaries the mass
+measure is the counting measure times a constant, so `df_mass_est`
+equals `df_num_est` exactly — a useful sanity check. For polydisperse
+primaries the two track the same underlying arrangement unless radii
+correlate with position.
 
-Two caveats learned from the example above: a single realization at moderate
-{math}`N` under-estimates the requested {math}`D_f` (here 1.49 for a request
-of 1.8), and `R2` measures the fit quality, not the agreement with the
-requested `df`. Average `Df_estimated` over several seeded realizations before
-quoting ensemble numbers.
+Two caveats: a single realization at moderate `N` deviates from the
+requested `df` by a few tenths, and the `r2` fields measure fit quality,
+not agreement with the request. Average over several seeded
+realizations before quoting ensemble numbers.
+
+`estimator="pcf"` switches the classic pair-correlation path (differenced
+C(r)/C_m(r) curves); the mass PCF curve is noisy on single realizations —
+prefer the default sandbox estimator for `df_mass_est`.
 
 ## Individual functions
 
@@ -72,6 +81,31 @@ com = pfa.center_of_mass(agg)      # (3,) array
 
 `radius_of_gyration` includes the finite size of the primaries via the
 parallel-axis theorem ({math}`3/5\,r^2` per solid sphere).
+
+### Sandbox functions
+
+```python
+r_num, n_r = pfa.number_radius_function(agg)      # <N(r)>, 15 log-spaced points
+r_mass, m_r = pfa.mass_radius_function(agg)       # <M(r)>, weights r_i^3
+
+dfn, r2n, fitn = pfa.number_sandbox_dimension(agg)
+dfm, r2m, fitm = pfa.mass_sandbox_dimension(agg)
+```
+
+`bins` is the number of log-spaced grid points; the default window runs
+from the mean primary radius to `Rg` (pass `r_min`/`r_max` to override).
+`plot_sandbox(agg, measure="both")` overlays both curves with their fits —
+the measure-comparison figure.
+
+### Mass pair correlation
+
+```python
+r, c_m = pfa.mass_pair_correlation_function(agg, bins=50)
+```
+
+Pairs are weighted by {math}`m_i m_j` (volume cubed; constant density makes
+mass- and volume-weighting identical). Noisy on single realizations —
+intended for ensemble-averaged curves.
 
 ### Pair correlation function
 
@@ -101,6 +135,9 @@ the fitted points (`x_fit`, `y_fit`).
 `plot_pair_correlation` renders {math}`C(r)` on log-log axes with the fractal
 fit and fit window; pass `save_path="pcf.png"` to write a file instead of
 opening a window.
+
+`plot_pair_correlation` accepts `measure="num"` (default), `"mass"`, or
+`"both"`. `plot_sandbox` accepts the same values with `"both"` as default.
 
 ```python
 pfa.plot_pair_correlation(agg, save_path="pcf.png")
