@@ -88,8 +88,9 @@ def mass_pair_correlation_function(
     (volume; with constant material density mass- and volume-weighting are
     identical up to a constant factor, so the slope is unaffected):
 
-    C_m(r) = (sum of m_i*m_j over ordered pairs (i != j) with distance
-             in [r, r+h]) / (4 * pi * r^2 * h * M)
+        C_m(r) = (sum of m_i*m_j over ordered pairs (i != j) with distance
+                 in [r, r+h]) / (4 * pi * r^2 * h * M)
+
     where M = sum_i m_i and h is the linear bin width.
     Each unordered pair contributes twice (once per endpoint), matching
     ``pair_correlation_function``'s ordered-pair counting so the two curves

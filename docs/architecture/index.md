@@ -140,10 +140,11 @@ wraps. Keyword-only extras (`surface_beta`) are validated there and
 rejected for placements that do not support them.
 
 `pfa.analyze()` is the facade's read-side: it bundles
-`radius_of_gyration`, `center_of_mass`, and the pair-correlation fit into a
-typed `MorphologyReport` (`rg`, `com`, `n`, `estimator`, per-measure
-`df_num_est`/`r2_num`/`r_num`/`num_correlation` and
-`df_mass_est`/`r2_mass`/`r_mass`/`mass_correlation`).
+`radius_of_gyration`, `center_of_mass`, and both per-measure
+fractal-dimension estimators (sandbox by default, pair-correlation via
+`estimator="pcf"`) into a typed `MorphologyReport` (`rg`, `com`, `n`,
+`estimator`, per-measure `df_num_est`/`r2_num`/`r_num`/`num_correlation`
+and `df_mass_est`/`r2_mass`/`r_mass`/`mass_correlation`).
 
 ## The placement strategy layer
 

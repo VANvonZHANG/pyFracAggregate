@@ -59,7 +59,7 @@ import pyFracAggregate as pfa
 agg = pfa.generate(200, 1.8, 1.9, method='pca', seed=0)  # N=200, Df=1.8, kf=1.9
 
 summary = pfa.analyze(agg)              # MorphologyReport (sandbox default)
-print(agg.current_size, summary.df_num_est, summary.df_mass_est)
+print(agg.current_size, summary.df_num_est, summary.df_mass_est)   # 200 1.8206754358246036 1.8206754358246036
 
 pfa.export_yaml(agg, 'aggregate.yaml')
 pfa.export_vtk(agg, 'aggregate.vtk')
