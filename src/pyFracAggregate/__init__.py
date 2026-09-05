@@ -26,14 +26,14 @@ from pyFracAggregate.analysis.correlation import (
 )
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_yaml
-from pyFracAggregate.io.visualization import export_render, export_rotation_video
+from pyFracAggregate.io.visualization import save_rotation_video, save_screenshot
 from pyFracAggregate.generators.pca import PCAGenerator
 from pyFracAggregate.generators.cca import CCAGenerator
 from pyFracAggregate.generators.placement.solved import SolvedPlacement
 from pyFracAggregate.generators.placement.sampled import SampledPlacement
 from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __author__ = "Fan Zhang"
 
 
@@ -138,8 +138,8 @@ __all__ = [
     "estimate_fractal_dimension",
     "plot_pair_correlation",
     "export_yaml",
-    "export_render",
-    "export_rotation_video",
+    "save_screenshot",
+    "save_rotation_video",
     "export_vtm",
     "export_vtk",
     "PCAGenerator",

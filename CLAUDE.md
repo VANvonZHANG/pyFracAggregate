@@ -49,10 +49,11 @@ No CLI entry point exists — the package is a library used via `import pyFracAg
 
 ### IO (`src/pyFracAggregate/io/`)
 - **data.py**: `export_yaml()` — full aggregate snapshot (data, generation params, analysis results)
+- **visualization.py**: `save_screenshot()` (PNG) and `save_rotation_video()` (MP4) via off-screen pyvista; `color_by="radius"` maps monomer size to a colormap
 - **vtk.py**: `export_vtm()` (MultiBlock) and `export_vtk()` (point cloud) via pyvista
 
 ### Top-level API (`__init__.py`)
-`pfa.generate(n_particles, df, kf, method='pca', scaling='mass', placement='solved', particle_dist=None, overlap_tolerance=1e-5, seed=None)` and `pfa.analyze(aggregate)` (returns the `MorphologyReport` dataclass) are the primary entry points. `generate()` delegates to the factory after matrix validation. Generation is reproducible via `seed=` (private `np.random.Generator`; the global NumPy RNG is never consulted). IO exports include `export_yaml()` (full snapshot; accepts a `MorphologyReport` and serializes legacy key names), `export_vtk()` (point cloud), and `export_vtm()` (MultiBlock).
+`pfa.generate(n_particles, df, kf, method='pca', scaling='mass', placement='solved', particle_dist=None, overlap_tolerance=1e-5, seed=None)` and `pfa.analyze(aggregate)` (returns the `MorphologyReport` dataclass) are the primary entry points. `generate()` delegates to the factory after matrix validation. Generation is reproducible via `seed=` (private `np.random.Generator`; the global NumPy RNG is never consulted). IO exports include `export_yaml()` (full snapshot; accepts a `MorphologyReport` and serializes legacy key names), `export_vtk()` (point cloud), `export_vtm()` (MultiBlock), and `save_screenshot()`/`save_rotation_video()` (off-screen PNG render / MP4 rotation video; `color_by="radius"` colors by monomer size).
 
 ## Key Conventions
 - Python 3.13+, type hints throughout; `ruff check src/` and `mypy src/` clean

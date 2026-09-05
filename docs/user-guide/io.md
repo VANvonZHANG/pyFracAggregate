@@ -54,22 +54,30 @@ pfa.export_vtm(agg, "aggregate.vtm")
 
 ## Rendered image
 
-`export_render` renders an off-screen 3D screenshot of the sphere mesh and
+`save_screenshot` renders an off-screen 3D screenshot of the sphere mesh and
 saves it as PNG. Sphere `color`, `opacity`, `background`, camera position,
 and `window_size` are configurable:
 
 ```python
-pfa.export_render(agg, "render.png", color="dimgray", window_size=(512, 384))
+pfa.save_screenshot(agg, "render.png", color="dimgray", window_size=(512, 384))
+```
+
+Polydisperse clusters can be colored by monomer size instead of a solid color —
+`color_by="radius"` maps each monomer's radius onto a colormap (`cmap`,
+default `"viridis"`); the `color` argument is ignored in that mode:
+
+```python
+pfa.save_screenshot(agg, "render_radius.png", color_by="radius", cmap="plasma")
 ```
 
 ## Rotation video
 
-`export_rotation_video` animates a full 360° turn and writes an MP4
+`save_rotation_video` animates a full 360° turn and writes an MP4
 (`n_frames` frames at `fps`, camera at `elevation` degrees). Keep `n_frames`
 modest while prototyping — rendering time scales with it:
 
 ```python
-pfa.export_rotation_video(agg, "rotation.mp4", n_frames=72, fps=24)
+pfa.save_rotation_video(agg, "rotation.mp4", n_frames=72, fps=24)
 ```
 
 MP4 writing goes through imageio's ffmpeg backend. The
@@ -89,8 +97,8 @@ contains explicit sphere meshes, so it displays as-is after loading — at the
 cost of a larger file.
 
 ````{warning}
-**Rendering and video on headless servers.** `export_render` and
-`export_rotation_video` need a working OpenGL context even though they render
+**Rendering and video on headless servers.** `save_screenshot` and
+`save_rotation_video` need a working OpenGL context even though they render
 off-screen. On a machine without a GPU or display, pyvista/VTK may fall back
 to software EGL successfully — or crash with EGL/segfault errors, depending
 on the VTK build. The reliable fixes are a virtual display or software GL:

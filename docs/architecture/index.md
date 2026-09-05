@@ -45,7 +45,7 @@ flowchart TB
     subgraph IOLAYER ["io/"]
         YAMLIO["data.py<br/>export_yaml"]
         VTKIO["vtk.py<br/>export_vtk / export_vtm"]
-        VISIO["visualization.py<br/>export_render / export_rotation_video"]
+        VISIO["visualization.py<br/>save_screenshot / save_rotation_video"]
     end
 
     user --> facade
@@ -194,8 +194,8 @@ The io layer serializes an `Aggregate` for downstream use: `data.py` writes
 a YAML snapshot bundling particle data with generation parameters and
 analysis results; `vtk.py` builds the pyvista point cloud (`export_vtk`) and
 MultiBlock dataset (`export_vtm`) for ParaView; `visualization.py` performs
-off-screen pyvista rendering (`export_render`) and assembles MP4 rotation
-videos (`export_rotation_video`). Rendering exporters need a working 3D
+off-screen pyvista rendering (`save_screenshot`) and assembles MP4 rotation
+videos (`save_rotation_video`). Rendering exporters need a working 3D
 backend — see the [io guide](/user-guide/io.md) for headless-environment
 notes.
 
