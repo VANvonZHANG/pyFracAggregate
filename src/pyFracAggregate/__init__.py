@@ -41,7 +41,7 @@ from pyFracAggregate.generators.placement.solved import SolvedPlacement
 from pyFracAggregate.generators.placement.sampled import SampledPlacement
 from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 __author__ = "Fan Zhang"
 
 
