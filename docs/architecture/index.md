@@ -1,85 +1,70 @@
 # Architecture
 
-pyFracAggregate is a four-layer library: a **core** data structure
-(`Aggregate`, primary-particle distributions, scaling laws), a **generators**
-layer holding the two aggregation algorithms, the shared scaling-law
-strategy, and their placement sublayer, an **analysis** layer computing
-morphological descriptors, and an **io** layer exporting aggregates. A thin
-top-level facade (`pfa.generate` / `pfa.analyze`) ties the layers together;
-a factory validates the three-axis coordinate
-(`method` × `scaling` × `placement`) and dispatches to a generator class.
-Every generator draws randomness from one seeded `numpy.random.Generator`,
-so any legal coordinate is reproducible with `seed=`.
+pyFracAggregate is organized around one idea: **every layer produces or
+consumes a single central data structure**, the
+[`Aggregate`](/api-reference/index.md#core), and generation is defined by
+**three orthogonal choices** — the `method` axis (`pca` particle-cluster vs
+`cca` cluster-cluster aggregation), the `scaling` axis (count weights after
+Filippov 2000 vs mass weights after Morán 2019), and the `placement` axis
+(`sampled` Monte Carlo, `solved` closed-form tangency, `constructed`
+FracVAL contact pairs). A thin facade (`pfa.generate` / `pfa.analyze`)
+validates the 10 legal combinations and dispatches; the analysis and I/O
+layers are pure consumers of the finished aggregate.
 
-```{mermaid}
-flowchart TB
-    user(["user code"])
+The map below shows the whole library in one view — the two rows trace the
+*write path* (a `generate()` call ending in an `Aggregate`) and the
+collaborators each generator consults per growth step. It is fully
+interactive — pan, zoom, toggle the theme, search nodes, or trace any
+relationship — in the
+[standalone viewer](../_static/pyfracaggregate-architecture.html){target=_blank},
+which is also the best way to read it on a small screen.
 
-    facade["top-level facade<br/>generate() / analyze()"]
-    factory["generators/factory.py<br/>get_generator: matrix validation<br/>method x scaling x placement"]
-
-    subgraph GENLAYER ["generators/"]
-        BASE["BaseGenerator (ABC)<br/>holds seeded np.random.Generator"]
-        PCA["PCAGenerator"]
-        CCA["CCAGenerator"]
-        subgraph PLACE ["generators/placement/"]
-            PABC["PlacementStrategy (ABC)"]
-            SOLVED["SolvedPlacement<br/>(FLAGE, default)"]
-            SMP["SampledPlacement<br/>(Monte Carlo)"]
-            CONS["ConstructedPlacement<br/>(FracVAL contact pairs)"]
-            SOLV["solvers.py<br/>closed-form + MC primitives"]
-        end
-    end
-
-    subgraph CORELAYER ["core/"]
-        AGG["Aggregate<br/>pre-allocated (max_particles, 5)<br/>[x, y, z, radius, mass]"]
-        DIST["ParticleDistribution<br/>Monodisperse / Lognormal / FixedRadii"]
-        SCALE["core/scaling.py<br/>ScalingLaw: Count | Mass"]
-    end
-
-    subgraph ANALYSIS ["analysis/"]
-        MORPH["morphology.py<br/>radius_of_gyration / center_of_mass"]
-        CORR["correlation.py<br/>pair correlation / Df estimation"]
-    end
-
-    subgraph IOLAYER ["io/"]
-        YAMLIO["data.py<br/>export_yaml"]
-        VTKIO["vtk.py<br/>export_vtk / export_vtm"]
-        VISIO["visualization.py<br/>save_screenshot / save_rotation_video"]
-    end
-
-    user --> facade
-    facade -->|"coordinate + seed"| factory
-    factory --> PCA
-    factory --> CCA
-
-    PCA & CCA -.->|"subclass"| BASE
-    DIST -->|"sample(n, rng) radii"| BASE
-    SCALE -->|"pca_step / cca_gamma"| BASE
-    PCA -.->|"place_particle()"| PABC
-    CCA -.->|"merge_clusters()"| PABC
-    PABC --> SOLVED
-    PABC --> SMP
-    PABC --> CONS
-    SOLVED --> SOLV
-    SMP --> SOLV
-    CONS --> SOLV
-
-    PCA & CCA -->|"generate() returns"| AGG
-
-    AGG --> MORPH
-    AGG --> CORR
-    facade -.->|"analyze()"| MORPH
-    facade -.->|"analyze()"| CORR
-
-    AGG --> YAMLIO
-    AGG --> VTKIO
-    AGG --> VISIO
+```{raw} html
+<iframe src="../_static/pyfracaggregate-architecture.html"
+        style="width:100%;height:580px;border:1px solid var(--pst-color-border, #ccc);border-radius:8px;"
+        title="Interactive pyFracAggregate architecture map"></iframe>
+<p style="font-size:0.9em;">
+<a href="../_static/pyfracaggregate-architecture.html" target="_blank">
+Open the interactive architecture map in a full tab</a> — supports pan/zoom,
+light/dark themes, search, focus, and relationship tracing.</p>
 ```
 
-The scaling law (`core/scaling.py`) owns the parallel-axis target-distance
-equations once; the placement strategies are thin recipes over the shared
-contact primitives (`solvers.py`).
+How to read the map:
+
+- **Solid arrows are the main path**: user code → facade → factory →
+  generator → `Aggregate` → analysis / export.
+- **Dashed arrows are collaborator calls** the generator makes each step:
+  the scaling law for the target distance, the distribution for radii,
+  the placement strategy for contact.
+- **Dashed regions are the four layers**: `generators/`, `core/`,
+  `analysis/`, and `io/`.
+
+## How a `generate()` call flows
+
+1. **Facade.** `pfa.generate(n_particles, df, kf, ...)` defaults the
+   particle distribution to `Monodisperse(1.0)` and forwards everything to
+   the factory.
+2. **Validation.** `get_generator()` (in `generators/factory.py`) resolves
+   deprecated aliases (`'fracval'` → `(cca, mass, constructed)`,
+   `'algebraic'`/`'random'` for placements) and rejects illegal
+   method × placement combinations (`pca` has no `constructed` stage) and
+   misplaced options such as `surface_beta` outside `'solved'`.
+3. **Generator.** `PCAGenerator` or `CCAGenerator` is constructed holding
+   one seeded `numpy.random.Generator`, the chosen `ScalingLaw` (resolved
+   through `get_scaling`), and a `PlacementStrategy` (resolved through
+   `get_placement`, which also passes in the generator's tolerance and
+   RNG).
+4. **Growth loop.** Each step asks two collaborators: the scaling law for
+   *where* — the target center-to-center distance `L` (PCA) or `Γ` (CCA)
+   from the parallel-axis theorem — and the placement strategy for *which
+   particles touch* at that distance.
+5. **Result.** `generate()` returns the populated `Aggregate`; the same
+   `seed=` replays every draw, so any legal coordinate is reproducible.
+
+The read path mirrors it: `pfa.analyze(aggregate, estimator=...)` bundles
+morphology and per-measure fractal-dimension estimates into a
+`MorphologyReport`, and the `io/` exporters serialize the aggregate (with
+or without that report) to YAML, VTK/VTM, PNG, or MP4.
 
 ## The `Aggregate` data structure
 
@@ -146,12 +131,30 @@ fractal-dimension estimators (sandbox by default, pair-correlation via
 `estimator`, per-measure `df_num_est`/`r2_num`/`r_num`/`num_correlation`
 and `df_mass_est`/`r2_mass`/`r_mass`/`mass_correlation`).
 
+## Scaling and placement: the division of labor
+
+Each growth step splits into two questions, owned by two separate strategy
+layers:
+
+- **Where** — the center of the added particle (PCA) or incoming cluster
+  (CCA) must sit at a distance `L` or `Γ` from the cluster center. The
+  [`ScalingLaw`](/api-reference/index.md#generators) in `core/scaling.py`
+  owns these parallel-axis target-distance equations *once*:
+  `CountScaling` uses particle-count weights (Filippov et al., 2000),
+  `MassScaling` uses mass weights (Morán et al., 2019), and the two are
+  mathematically equivalent for monodisperse primaries. Computing `Γ`
+  needs the sub-cluster gyration radii, so the laws reuse
+  `analysis.morphology.radius_of_gyration` — the one place `core/` reaches
+  into `analysis/`.
+- **Which particles touch** — resolving actual contact at that target
+  distance is delegated to a `PlacementStrategy`. The strategies are thin
+  recipes over the shared contact primitives in
+  `generators/placement/solvers.py` (`solve_tangency`, Monte Carlo touch
+  placement), so they differ in recipe, not in primitives.
+
 ## The placement strategy layer
 
-The scaling law fixes *where* the center of each added particle or cluster
-must sit (distance `L` or `Γ` from the cluster center) but not *which*
-particles touch. Resolving that contact problem is delegated to a strategy
-object, selected by name:
+The two questions above meet in a strategy object, selected by name:
 
 - [`PlacementStrategy`](/api-reference/index.md#placement) — the ABC. Its two
   abstract methods mirror the two aggregation stages: `place_particle()`
@@ -173,12 +176,8 @@ object, selected by name:
   (pandas-style). `BaseGenerator.__init__` resolves through it, passing the
   generator's `overlap_tolerance` and its seeded `Generator`.
 
-All strategies share their contact primitives through
-`generators/placement/solvers.py` (`solve_tangency`, `mc_touch_place`,
-`mc_touch_merge`), so they differ only in their recipe, not in their
-primitives. The former `FracVALGenerator` merge *is*
-`ConstructedPlacement`; there is no generator-specific contact logic left
-outside the placement layer.
+The former `FracVALGenerator` merge *is* `ConstructedPlacement`; there is
+no generator-specific contact logic left outside the placement layer.
 
 ## Analysis
 
