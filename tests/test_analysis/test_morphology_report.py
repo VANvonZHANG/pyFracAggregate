@@ -69,7 +69,7 @@ def test_new_functions_exported_at_top_level():
 
 
 def test_version_bumped():
-    assert pfa.__version__ == "0.6.0"
+    assert pfa.__version__ == "0.6.1"
 
 
 def test_legacy_dict_access_pattern_gone(agg):
