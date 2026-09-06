@@ -217,4 +217,4 @@ class TestPublicExports:
         assert not hasattr(pfa, "export_rotation_video")
 
     def test_version_bumped(self):
-        assert pfa.__version__ == "0.5.0"
+        assert pfa.__version__ == "0.6.0"

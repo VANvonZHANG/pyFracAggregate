@@ -70,10 +70,11 @@ classes are public for direct use and subclassing.
 ## Analysis
 
 Morphological descriptors computed from an `Aggregate`: global quantities
-(radius of gyration, center of mass) and the two-point pair correlation
-function `C(r)`, from which the fractal dimension is estimated by log-log
-regression. `analyze()` bundles the main ones into a `MorphologyReport`, and
-`plot_pair_correlation()` visualizes the fit (requires matplotlib).
+(radius of gyration, center of mass), per-measure fractal-dimension
+estimators — the sandbox (mass-radius) family for the robust default, the
+pair-correlation family for the classic counting path — and matplotlib
+diagnostics. `analyze(estimator=...)` bundles both measures into a
+`MorphologyReport`.
 
 ```{eval-rst}
 .. autoclass:: pyFracAggregate.MorphologyReport
@@ -87,9 +88,21 @@ regression. `analyze()` bundles the main ones into a `MorphologyReport`, and
 
 .. autofunction:: pyFracAggregate.analysis.correlation.pair_correlation_function
 
+.. autofunction:: pyFracAggregate.analysis.correlation.mass_pair_correlation_function
+
 .. autofunction:: pyFracAggregate.analysis.correlation.estimate_fractal_dimension
 
 .. autofunction:: pyFracAggregate.analysis.correlation.plot_pair_correlation
+
+.. autofunction:: pyFracAggregate.analysis.sandbox.number_radius_function
+
+.. autofunction:: pyFracAggregate.analysis.sandbox.mass_radius_function
+
+.. autofunction:: pyFracAggregate.analysis.sandbox.number_sandbox_dimension
+
+.. autofunction:: pyFracAggregate.analysis.sandbox.mass_sandbox_dimension
+
+.. autofunction:: pyFracAggregate.analysis.sandbox.plot_sandbox
 ```
 
 ## I/O

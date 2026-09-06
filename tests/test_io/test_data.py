@@ -84,7 +84,7 @@ def test_export_yaml_numpy_arrays_converted(tmp_path):
     export_yaml(agg, path)
 
 
-def test_export_yaml_accepts_morphology_report_with_legacy_keys(tmp_path):
+def test_export_yaml_accepts_morphology_report_with_v06_keys(tmp_path):
     import pyFracAggregate as pfa
     agg = pfa.generate(30, 1.8, 1.3, method="pca", seed=7)
     report = pfa.analyze(agg)
@@ -92,14 +92,22 @@ def test_export_yaml_accepts_morphology_report_with_legacy_keys(tmp_path):
     export_yaml(agg, path, analysis_results=report)
     with open(path) as f:
         data = yaml.safe_load(f)
-    # 0.1/0.3 snapshot keys must survive (spec 2.5 / deviation N3)
+    # v0.6 snapshot keys
     assert data["analysis"]["Rg"] == pytest.approx(report.rg)
-    assert data["analysis"]["Df_estimated"] == pytest.approx(report.df_est)
-    assert data["analysis"]["R2"] == pytest.approx(report.r2)
-    assert data["analysis"]["N"] == 30
     assert data["analysis"]["CoM"] == pytest.approx(report.com.tolist())
-    # additive new keys
-    assert len(data["analysis"]["r_centers"]) == len(report.r_centers)
+    assert data["analysis"]["N"] == 30
+    assert data["analysis"]["estimator"] == "sandbox"
+    assert data["analysis"]["Df_num_estimated"] == pytest.approx(report.df_num_est)
+    assert data["analysis"]["R2_num"] == pytest.approx(report.r2_num)
+    assert data["analysis"]["Df_mass_estimated"] == pytest.approx(report.df_mass_est)
+    assert data["analysis"]["R2_mass"] == pytest.approx(report.r2_mass)
+    assert len(data["analysis"]["r_num"]) == len(report.r_num)
+    assert len(data["analysis"]["num_correlation"]) == len(report.num_correlation)
+    assert len(data["analysis"]["r_mass"]) == len(report.r_mass)
+    assert len(data["analysis"]["mass_correlation"]) == len(report.mass_correlation)
+    # pre-0.6 keys are gone (breaking change, spec D2/D7)
+    for old_key in ("Df_estimated", "R2", "r_centers", "pair_correlation"):
+        assert old_key not in data["analysis"]
 
 
 def test_export_yaml_accepts_plain_dict_still(tmp_path):

@@ -26,15 +26,20 @@ def _to_native(obj):
 
 
 def _report_to_legacy_dict(report) -> dict:
-    """MorphologyReport -> 0.x snapshot key names (spec 2.5, deviation N3)."""
+    """MorphologyReport -> v0.6 snapshot key names."""
     return {
         "Rg": report.rg,
         "CoM": report.com,
         "N": report.n,
-        "Df_estimated": report.df_est,
-        "R2": report.r2,
-        "r_centers": report.r_centers,
-        "pair_correlation": report.pair_correlation,
+        "estimator": report.estimator,
+        "Df_num_estimated": report.df_num_est,
+        "R2_num": report.r2_num,
+        "r_num": report.r_num,
+        "num_correlation": report.num_correlation,
+        "Df_mass_estimated": report.df_mass_est,
+        "R2_mass": report.r2_mass,
+        "r_mass": report.r_mass,
+        "mass_correlation": report.mass_correlation,
     }
 
 
@@ -52,9 +57,10 @@ def export_yaml(
         output_path: Path to save the YAML file.
         generation_params: Optional dict of generation parameters (method, df, kf, etc.).
         analysis_results: Optional dict of analysis results, or a
-            MorphologyReport from pfa.analyze (serialized under the legacy
-            key names "Rg"/"CoM"/"N"/"Df_estimated"/"R2" plus the new
-            "r_centers"/"pair_correlation").
+            MorphologyReport from pfa.analyze (serialized under the v0.6
+            key names "Rg"/"CoM"/"N"/"estimator"/"Df_num_estimated"/
+            "R2_num"/"r_num"/"num_correlation"/"Df_mass_estimated"/
+            "R2_mass"/"r_mass"/"mass_correlation").
     """
     if analysis_results is not None and not isinstance(analysis_results, dict):
         from pyFracAggregate import MorphologyReport  # local import: avoid cycle

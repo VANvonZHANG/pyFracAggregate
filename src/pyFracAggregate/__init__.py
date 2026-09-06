@@ -21,8 +21,16 @@ from pyFracAggregate.core.distributions import Monodisperse, LognormalDistributi
 from pyFracAggregate.analysis.morphology import radius_of_gyration, center_of_mass
 from pyFracAggregate.analysis.correlation import (
     pair_correlation_function,
+    mass_pair_correlation_function,
     estimate_fractal_dimension,
     plot_pair_correlation
+)
+from pyFracAggregate.analysis.sandbox import (
+    number_radius_function,
+    mass_radius_function,
+    number_sandbox_dimension,
+    mass_sandbox_dimension,
+    plot_sandbox
 )
 from pyFracAggregate.io.vtk import export_vtm, export_vtk
 from pyFracAggregate.io.data import export_yaml
@@ -33,24 +41,32 @@ from pyFracAggregate.generators.placement.solved import SolvedPlacement
 from pyFracAggregate.generators.placement.sampled import SampledPlacement
 from pyFracAggregate.generators.placement.constructed import ConstructedPlacement
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __author__ = "Fan Zhang"
 
 
 @dataclass
 class MorphologyReport:
-    """Typed morphology summary of an aggregate (spec 2.5, deviation N3).
+    """Typed morphology summary of an aggregate, per measure.
 
-    Attribute names are snake_case; `export_yaml` maps them to the legacy
-    capitalized snapshot keys ("Rg", "Df_estimated", ...).
+    ``estimator`` records which family produced the report:
+    "sandbox" (cumulative <N(r)>/<M(r)> curves, default) or "pcf"
+    (differenced pair-correlation curves). Curve field contents follow
+    the estimator; `export_yaml` serializes all fields under the v0.6
+    snapshot key names.
     """
     rg: float
-    df_est: float
-    r2: float
-    r_centers: np.ndarray
-    pair_correlation: np.ndarray
     com: np.ndarray
     n: int
+    estimator: str
+    df_num_est: float
+    r2_num: float
+    r_num: np.ndarray
+    num_correlation: np.ndarray
+    df_mass_est: float
+    r2_mass: float
+    r_mass: np.ndarray
+    mass_correlation: np.ndarray
 
 def generate(
     n_particles: int,
@@ -104,24 +120,58 @@ def generate(
 
     return generator.generate()
 
-def analyze(aggregate: Aggregate) -> MorphologyReport:
+def analyze(
+    aggregate: Aggregate,
+    estimator: Literal["sandbox", "pcf"] = "sandbox",
+) -> MorphologyReport:
     """
     Compute the core morphological properties of an aggregate.
+
+    Args:
+        aggregate (Aggregate): Cluster object.
+        estimator (str): 'sandbox' (default) fits the cumulative
+            mass-radius curves <N(r)> and <M(r)> — statistically robust for
+            both measures; 'pcf' fits the differenced pair-correlation
+            curves C(r) and C_m(r) — the counting path is the classic
+            estimator, the mass path is noisy on single realizations.
     """
+    if estimator not in ("sandbox", "pcf"):
+        raise ValueError(
+            f"estimator must be 'sandbox' or 'pcf', got {estimator!r}"
+        )
+
     rg = radius_of_gyration(aggregate)
-    r_centers, c_r = pair_correlation_function(aggregate)
-    df_est, r2, _ = estimate_fractal_dimension(
-        r_centers, c_r,
-        r_min=float(np.mean(aggregate.radii)), r_max=rg,
-    )
+    com = center_of_mass(aggregate)
+
+    if estimator == "sandbox":
+        r_num, num_curve = number_radius_function(aggregate)
+        df_num, r2_num, _ = number_sandbox_dimension(aggregate)
+        r_mass, mass_curve = mass_radius_function(aggregate)
+        df_mass, r2_mass, _ = mass_sandbox_dimension(aggregate)
+    else:
+        r_num, num_curve = pair_correlation_function(aggregate)
+        r_mass, mass_curve = mass_pair_correlation_function(aggregate)
+        r_min_fit = float(np.mean(aggregate.radii))
+        df_num, r2_num, _ = estimate_fractal_dimension(
+            r_num, num_curve, r_min=r_min_fit, r_max=rg
+        )
+        df_mass, r2_mass, _ = estimate_fractal_dimension(
+            r_mass, mass_curve, r_min=r_min_fit, r_max=rg
+        )
+
     return MorphologyReport(
         rg=rg,
-        df_est=df_est,
-        r2=r2,
-        r_centers=r_centers,
-        pair_correlation=c_r,
-        com=center_of_mass(aggregate),
+        com=com,
         n=aggregate.current_size,
+        estimator=estimator,
+        df_num_est=df_num,
+        r2_num=r2_num,
+        r_num=r_num,
+        num_correlation=num_curve,
+        df_mass_est=df_mass,
+        r2_mass=r2_mass,
+        r_mass=r_mass,
+        mass_correlation=mass_curve,
     )
 
 
@@ -137,6 +187,12 @@ __all__ = [
     "pair_correlation_function",
     "estimate_fractal_dimension",
     "plot_pair_correlation",
+    "mass_pair_correlation_function",
+    "number_radius_function",
+    "mass_radius_function",
+    "number_sandbox_dimension",
+    "mass_sandbox_dimension",
+    "plot_sandbox",
     "export_yaml",
     "save_screenshot",
     "save_rotation_video",

@@ -43,3 +43,71 @@ def test_pair_correlation_function_empty_or_single():
     r_centers, c_r = pair_correlation_function(agg1)
     assert len(r_centers) == 0
     assert len(c_r) == 0
+
+import pyFracAggregate as pfa
+from pyFracAggregate.analysis.correlation import mass_pair_correlation_function
+
+
+def test_mass_pcf_two_particles_analytic():
+    agg = Aggregate(3)
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
+    agg.add_particle(10.0, 0.0, 0.0, 2.0, 1.0)
+
+    r_centers, c_m = mass_pair_correlation_function(agg, bins=20, r_max=12.0)
+    bin_idx = int(np.argmin(np.abs(r_centers - 10.0)))
+    h = 12.0 / 20.0
+    total_w = 1.0 ** 3 + 2.0 ** 3
+    expected = 2.0 * (1.0 ** 3 * 2.0 ** 3) / (4.0 * np.pi * r_centers[bin_idx] ** 2 * h * total_w)
+    assert np.isclose(c_m[bin_idx], expected)
+    for i in range(20):
+        if i != bin_idx:
+            assert c_m[i] == 0.0
+
+
+def test_mass_pcf_monodisperse_is_scaled_counting_pcf():
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    r, c = pair_correlation_function(agg)
+    r_m, c_m = mass_pair_correlation_function(agg)
+    assert np.allclose(r, r_m)
+    mask = c > 0
+    ratio = c_m[mask] / c[mask]
+    assert np.allclose(ratio, ratio[0])       # constant factor -> same slope
+
+
+def test_mass_pcf_too_few_particles():
+    agg = Aggregate(1)
+    agg.add_particle(0.0, 0.0, 0.0, 1.0, 1.0)
+    r, c_m = mass_pair_correlation_function(agg)
+    assert len(r) == 0 and len(c_m) == 0
+
+
+def test_plot_pair_correlation_measures(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    for measure in ("num", "mass", "both"):
+        out = tmp_path / f"pcf_{measure}.png"
+        pfa.plot_pair_correlation(agg, measure=measure, save_path=str(out))
+        assert out.exists() and out.stat().st_size > 0
+
+
+def test_plot_pair_correlation_rejects_unknown_measure():
+    agg = pfa.generate(20, 1.8, 1.9, method="pca", seed=1)
+    with pytest.raises(ValueError, match="measure"):
+        pfa.plot_pair_correlation(agg, measure="nmu")
+
+
+def test_plot_pair_correlation_reference_slope_is_df_minus_3(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    import matplotlib.pyplot as plt
+    agg = pfa.generate(80, 1.8, 1.9, method="pca", seed=5)
+    pfa.plot_pair_correlation(agg, show_fit=True, reference_df=1.8,
+                              measure="num", save_path=str(tmp_path / "p.png"))
+    ax = plt.gca()
+    ref = [ln for ln in ax.lines if ln.get_label().startswith("Ref")]
+    assert len(ref) == 1
+    x, y = ref[0].get_xdata(), ref[0].get_ydata()
+    slope = np.polyfit(np.log10(x), np.log10(y), 1)[0]
+    assert slope == pytest.approx(1.8 - 3.0, abs=1e-6)   # differenced: Df - 3
+    plt.close("all")

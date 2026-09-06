@@ -8,7 +8,7 @@ on the FracVAL coordinate. It is a static adaptation of the
 which remains in `examples/` if you prefer an executable format.
 
 Every code block below was executed in the order shown, with
-pyFracAggregate 0.4.0 and `seed=0` passed to each generation call. The
+pyFracAggregate 0.6.0 and `seed=0` passed to each generation call. The
 printed values are the real measured outputs of that run, and the
 embedded figures are the actual artifacts of those exact calls (saved under
 different file names in the docs tree). If you run the snippets yourself you
@@ -61,45 +61,57 @@ span roughly 35 nm — an open, branched object, not a compact ball.
 ### Analyze morphology
 
 [`pfa.analyze()`](/api-reference/index.md#analysis) computes the radius of
-gyration, center of mass, and — via the pair correlation function — an
-estimate of the fractal dimension, all in one call:
+gyration, center of mass, and — via the cumulative sandbox estimator —
+fractal-dimension estimates in both the counting and the mass measure, all
+in one call:
 
 `analyze()` returns a typed `MorphologyReport` — read it by attribute:
 
 ```python
 report = pfa.analyze(agg)
 
-print(f"Rg:      {report.rg:.3f} {agg.length_unit}")
-print(f"CoM:     [{report.com[0]:.2f}, {report.com[1]:.2f}, {report.com[2]:.2f}]")
-print(f"N:       {report.n}")
-print(f"Df_est:  {report.df_est:.3f}")
-print(f"R2:      {report.r2:.4f}")
+print(f"Rg:        {report.rg:.3f} {agg.length_unit}")
+print(f"CoM:       [{report.com[0]:.2f}, {report.com[1]:.2f}, {report.com[2]:.2f}]")
+print(f"N:         {report.n}")
+print(f"estimator: {report.estimator}")
+print(f"Df,num:    {report.df_num_est:.3f}  (R2={report.r2_num:.4f})")
+print(f"Df,mass:   {report.df_mass_est:.3f}  (R2={report.r2_mass:.4f})")
 ```
 
 ```text
-Rg:      13.274 nm
-CoM:     [-3.62, 4.92, 0.15]
-N:       200
-Df_est:  1.613
-R2:      0.9806
+Rg:        13.274 nm
+CoM:       [-3.62, 4.92, 0.15]
+N:         200
+estimator: sandbox
+Df,num:    1.821  (R2=0.9798)
+Df,mass:   1.821  (R2=0.9798)
 ```
 
-Read the last two lines with care. The estimated {math}`D_f` is 1.613 against
-a request of 1.8, and {math}`R^2 = 0.98` says the log-log fit is good —
-{math}`R^2` measures fit quality, not agreement with the target. A single
-realization at moderate {math}`N` typically deviates from the requested
-{math}`D_f` by a few tenths; average over several seeded realizations before
-quoting ensemble numbers
-([Interpreting `df_est` and `r2`](/user-guide/analysis.md#interpreting-df_est-and-r2)).
+For a monodisperse aggregate the mass measure is the counting measure times
+a constant, so `df_mass_est` equals `df_num_est` exactly — 1.821 twice
+above.
+
+Read the last two lines with care. The estimated {math}`D_f` is 1.821
+against a request of 1.8 — close this time — and {math}`R^2 = 0.98` says the
+log-log fit is good, but {math}`R^2` measures fit quality, not agreement
+with the target. A single realization at moderate {math}`N` typically
+deviates from the requested {math}`D_f` by a few tenths (the pcf estimate
+below misses wider); average over several seeded realizations before quoting
+ensemble numbers
+([Interpreting `df_num_est`, `df_mass_est` and the r2 fields](/user-guide/analysis.md#interpreting-df_num_est-df_mass_est-and-the-r2-fields)).
 
 ### Pair correlation function
 
-The estimate above comes from the pair correlation function
-{math}`C(r) \propto r^{D_f - 3}`, so it is worth looking at the underlying
-curve. Compute it explicitly, then let
+The pair correlation function is the classic *differenced* estimator of
+{math}`D_f` from {math}`C(r) \propto r^{D_f - 3}`. Passing
+`estimator="pcf"` to [`pfa.analyze()`](/api-reference/index.md#analysis)
+walks this path instead of the sandbox — for this aggregate it reports
+`df_num_est` = 1.613 (`r2_num` = 0.9806), a wider miss from the 1.8 request
+than the sandbox's 1.821 above. It is worth looking at the underlying
+curve: compute it explicitly, then let
 [`plot_pair_correlation()`](/api-reference/index.md#analysis) redraw it with
-the fractal fit and the fit window — the fit runs from the mean primary radius
-to {math}`R_g`:
+the fractal fit and the fit window — the fit runs from the mean primary
+radius to {math}`R_g`:
 
 ```python
 r_centers, c_r = pfa.pair_correlation_function(agg, bins=50)
@@ -229,19 +241,19 @@ Two details worth noting:
 ```python
 report_poly = pfa.analyze(agg_poly)
 
-print(f"Rg:      {report_poly.rg:.3f} {agg_poly.length_unit}")
-print(f"CoM:     [{report_poly.com[0]:.2f}, {report_poly.com[1]:.2f}, {report_poly.com[2]:.2f}]")
-print(f"N:       {report_poly.n}")
-print(f"Df_est:  {report_poly.df_est:.3f}")
-print(f"R2:      {report_poly.r2:.4f}")
+print(f"Rg:        {report_poly.rg:.3f} {agg_poly.length_unit}")
+print(f"CoM:       [{report_poly.com[0]:.2f}, {report_poly.com[1]:.2f}, {report_poly.com[2]:.2f}]")
+print(f"N:         {report_poly.n}")
+print(f"Df,num:    {report_poly.df_num_est:.3f}  (R2={report_poly.r2_num:.4f})")
+print(f"Df,mass:   {report_poly.df_mass_est:.3f}  (R2={report_poly.r2_mass:.4f})")
 ```
 
 ```text
-Rg:      17.068 nm
-CoM:     [-9.22, -16.27, 0.73]
-N:       256
-Df_est:  1.871
-R2:      0.9780
+Rg:        17.068 nm
+CoM:       [-9.22, -16.27, 0.73]
+N:         256
+Df,num:    1.782  (R2=0.9941)
+Df,mass:   1.879  (R2=0.9763)
 ```
 
 ```python
@@ -257,13 +269,35 @@ geometric standard deviation 1.6; the subcluster-merge construction gives a
 lumpier, more branched texture than the PCA aggregate of Part 1.
 ```
 
+### Sandbox measure comparison
+
+```python
+pfa.plot_sandbox(
+    agg_poly, show_fit=True, reference_df=1.8, measure="both",
+    save_path="pcf_fracval_sandbox.png",
+)
+```
+
+```{figure} ../_static/tutorial_fracval_sandbox.png
+:alt: Log-log plot of <N(r)> and <M(r)> with power-law fits and reference slope
+
+Both sandbox curves of the polydisperse aggregate. Blue: number measure
+⟨N(r)⟩, fit {math}`D_{f,n}` = 1.782. Orange: mass measure ⟨M(r)⟩
+(≡ volume weighting at constant density), fit {math}`D_{f,m}` =
+1.879. Green dashed: reference slope for the requested
+{math}`D_f = 1.8`. The two exponents track the same arrangement here —
+radii are uncorrelated with position; see
+[the background chapter](/background/index.md#counting-versus-mass-measure).
+```
+
 Side by side, the two runs differ in three ways:
 
 | | Part 1 (PCA) | Part 2 (FracVAL coordinate) |
 |---|---|---|
 | Primaries | 1.000 nm (monodisperse) | 0.232–4.225 nm, lognormal |
 | {math}`R_g` | 13.274 nm | 17.068 nm |
-| `df_est` ({math}`R^2`) | 1.613 (0.9806) | 1.871 (0.9780) |
+| `df_num_est` ({math}`R^2`) | 1.821 (0.9798) | 1.782 (0.9941) |
+| `df_mass_est` ({math}`R^2`) | 1.821 (0.9798) | 1.879 (0.9763) |
 
 - **Polydispersity.** The radius spread is the whole point of Part 2: large
   primaries anchor the cluster while small ones fill the crevices, which is
@@ -276,10 +310,12 @@ Side by side, the two runs differ in three ways:
 - **Size and Df.** With the same {math}`D_f` and {math}`k_f` requested (and a
   somewhat larger {math}`N`), the FracVAL cluster has a larger {math}`R_g`
   (17.1 vs 13.3 nm) — the scaling-law targets are statistical, not exact per
-  realization — and this realization's measured {math}`D_f` (1.87) happens to
-  land *above* the 1.8 request where Part 1's landed below (1.61). Same
-  lesson either way: one realization is one sample; seed several and average
-  when you report morphology.
+  realization. This realization's sandbox estimates straddle the 1.8 request
+  (`df_num_est` = 1.782 just under, `df_mass_est` = 1.879 above), while
+  Part 1's two values coincide at 1.821 — with monodisperse primaries the
+  mass measure is the counting measure times a constant, so the equality is
+  exact, not a coincidence. Same lesson either way: one realization is one
+  sample; seed several and average when you report morphology.
 
 ## Where to go next
 
